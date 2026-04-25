@@ -8,6 +8,13 @@ let cors = require('cors')
 app.use(cors())
 app.use(express.json())
 
+const http = require('http');
+const server = http.createServer(app); 
+
+const socket = require('./Controller/SocketIO/SocketIO.js')
+//Initialize socket
+socket.init(server)
+
 const route1 = require('./Route/schoolManagementRoute/schoolManagementRoute')
 app.use('/', route1)
 
@@ -26,10 +33,35 @@ app.use('/', route5)
 const route6 = require('./Route/infrastructureFacilitiesRoute/infrastructureFacilitiesRoute')
 app.use('/', route6)
 
+const route7 = require('./Route/AcademicCalendarRoute/AcademicCalendarRoute')
+app.use('/', route7)
+
+const route8 = require('./Route/principalStaffDirectoryRoute/principalStaffDirectoryRoute')
+app.use('/', route8)
+
+const route9 = require('./Route/PrincipalModuleRoute/principalDashboardRoute/principalDashboardRoute')
+app.use('/', route9)
+
+const route10 = require('./Route/PrincipalModuleRoute/principalSchoolFacilitiesRoute/principalSchoolFacilitiesRoute')
+app.use('/', route10)
+
+const route11 = require('./Route/whatsAppChatIntegrationTwilioRoute/whatsAppChatIntegrationTwilioRoute.js')
+app.use('/', route11)
+
+const route12 = require('./Route/PrincipalModuleRoute/principalClassRoute/principalClassRoute')
+app.use('/', route12)
+
+app.use('/upload', express.static('upload'));  // for multer
+const route13 = require('./Route/TeacherRoutes/studentsRoute/studentsRoute')
+app.use('/', route13)
+
+
+const route14 = require('./Route/TeacherRoutes/trackSyllabusUpdate/trackSyllabusUpdate')
+app.use('/', route14)
 
 
 
-app.listen(port, ()=>{
+
+server.listen(port, ()=>{
     console.log("Server is running on port", port);
-    
 })

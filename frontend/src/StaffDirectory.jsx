@@ -1,20 +1,26 @@
 import React from 'react'
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Toggle from './Toggle';
 import ModalForm from './ModalForm';
 import { FaEye } from "react-icons/fa6";
 import { BsPeople } from "react-icons/bs";
 import GeneratePDF from './GeneratePDF';
 import toast from 'react-hot-toast';
-import { BiSortAlt2 } from "react-icons/bi";
+import { BiSortAlt2, BiSolidEditAlt } from "react-icons/bi";
 import axios from 'axios';
 import { RiArrowDropDownLine } from "react-icons/ri";
+import UpdateStaffModal from './UpdateStaffDataModal';
+import { IoSearch } from "react-icons/io5";
+import { IoIosArrowDown } from 'react-icons/io';
+import StaffPdfContent from './StaffPdfContent'
+
 
 const StaffDirectory = () => {
-  let [finalRes, fn] = useState([])
+  const [finalRes, fn] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [open, setOpen] = useState(false)
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [openDistrict, setOpenDistrict] = useState(false);
 
 
   const handleView = (item) => {
@@ -53,10 +59,11 @@ const StaffDirectory = () => {
   const fetchSchoolData = async (pageNumber = 1) => {
     try {
       const response = await axios.get(
-        `http://localhost:5008/schoolpagination?page=${pageNumber}&limit=5`
+        `http://localhost:5008/schoolpagination?page=${pageNumber}&limit=10`
       );
 
       fn(response.data.data); // staff data
+      console.log(response.data.data)
       setTotalPages(response.data.totalPages); // total pages
     } catch (error) {
       console.error("Pagination fetch error:", error);
@@ -64,10 +71,12 @@ const StaffDirectory = () => {
   };
 
   useEffect(() => {
-    console.log("Total Pages State:", totalPages);
+    //console.log("Total Pages State:", totalPages);
     fetchSchoolData(page);
   }, [page]);
 
+  const [updateStaff, setUpdateStaff] = useState(null); // staff to edit
+  const [updateOpen, setUpdateOpen] = useState(false);  // modal open/close
 
 
 
@@ -78,6 +87,8 @@ const StaffDirectory = () => {
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedName, setSelectedName] = useState("");
+
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const uniqueNames = [...new Set(
     finalRes.map(item => item.first_name)
@@ -97,8 +108,14 @@ const StaffDirectory = () => {
           .toLowerCase()
           .includes(columnSearch.toLowerCase());
 
+    //For Global Search
+    const matchesGlobalSearch =
+      !globalSearch ||
+      Object.values(item).some((val) => val?.toString().toLowerCase().includes(globalSearch.toLowerCase())
+      )
+
     //Return both conditions
-    return matchesDropdown && matchesColumnSearch;
+    return matchesDropdown && matchesColumnSearch && matchesGlobalSearch;
   });
 
   const [sorting, setSorting] = useState({
@@ -135,362 +152,401 @@ const StaffDirectory = () => {
     setSorting({ key, direction });
   }
 
+  const [districts, setDistricts] = useState([]);
+
+  //For MP District api
+  function getDistrictsData() {
+    fetch('https://gist.githubusercontent.com/devzakir/ade5836fae0ac40531e6afb111d61870/raw/4fe8c90e127060d55ad3c7d6d603d13528450e5b/india-states-and-districts.json')
+      .then((res) => res.json())
+      .then((res) => {
+        const mp = res.states.find((s) => s.state === "Madhya Pradesh");
+        //console.log(mp.districts);
+
+        setDistricts(mp.districts)
+      })
+  }
+
+  useEffect(() => {
+    getDistrictsData();
+  }, [])
+
   return (
-    <div>
+    <div className='relative'>
 
       <div className='flex justify-between'>
         <h1 className='text-2xl m-1 font-bold'>Staff Directory</h1>
         <ModalForm />
       </div>
-      <div className="w-full overflow-x-auto h-70">
-        <table className="table-auto border-collapse w-full capitalise bg-white rounded-md ">
-          <thead className='border-b border-gray-300 h-10'>
-            <tr>
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("dise_code")}
-                    className='m-1 text-xl cursor-pointer' />
-                  Dise Code
-                </div>
-              </th>
 
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSort("staff_id")
-                    }}
-                    className='m-1 text-xl cursor-pointer' />
-                  staff ID
-                </div>
-              </th>
+      <p className='text-gray-600'>teaching and administrative staff</p>
 
-              <th className="font-normal cursor-pointer">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+      <IoSearch className="absolute left-3 top-24 -translate-y-1/2 text-gray-400 text-lg" />
 
-                  <BiSortAlt2
-                    onClick={(e) => 
-                      handleSort("first_name")
-                    }
-                    className='m-1 text-xl cursor-pointer' 
-                  />
+      <div className='flex'>
+        <input type="text"
+          placeholder='Search staff name, ID or school...'
+          value={globalSearch}
+          onChange={(e) => setGlobalSearch(e.target.value)}
+          className='w-2/6 m-1 p-2 pl-8 text-md rounded-md bg-white outline-2 focus:ring-2 focus:ring-violet-300 outline-none'
+        />
 
-                  {activeSearchColumn === "first_name" ? (
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="Search Name..."
-                      value={columnSearch}
-                      onChange={(e) => setColumnSearch(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-purple-400"
-                    />
-                  ) : (
-                    <span
-                      className='cursor-pointer'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveSearchColumn("first_name");
-                        setColumnSearch("")
-                      }}>Name</span>
-                    
-                  )}
-
-                  <div className="relative">
-                  <RiArrowDropDownLine
-                    className="cursor-pointer text-3xl text-gray-500 hover:text-black"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDropdown(prev => !prev)
-                      }} />
-
-                  {/* Dropdown Menu */}
-                  {showDropdown && (
-                    <div className="absolute top-10 right-0 bg-white shadow-lg border rounded-md z-50 w-40 max-h-60 overflow-y-auto">
-
-                      <div
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedName("");
-                          setShowDropdown(false);
-                        }}
-                      >
-                        All
-                      </div>
-
-                      {uniqueNames.map((name, index) => (
-                        <div
-                          key={index}
-                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
-                            setSelectedName(name);
-                            setShowDropdown(false);
-                          }}
-                        >
-                          {name}
-                        </div>
-                      ))}
-
-                    </div>
-                  )}
-                  </div>
-                </div>
-              </th>
-
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("gender")}
-                    className='m-1 text-xl cursor-pointer' />
-                  Gender
-                </div>
-              </th>
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("designation")} />
-                  Designation
-                </div>
-              </th>
-
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("qualification")} />
-                  Qualification
-                </div>
-              </th>
-
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("experience")} />
-                  Experience
-                </div>
-              </th>
-              <th className="font-normal">
-                <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  <BiSortAlt2
-                    onClick={() => handleSort("salary")} />
-                  Salary
-                </div>
-              </th>
-
-              <th className="font-normal">Status</th>
-              <th className="font-normal">View More</th>
-              <th className="font-normal">Export</th>
-              {/* <th className="font-normal">Created At</th> */}
-            </tr>
-
-          </thead>
-          <tbody>
-            {
-              sortedData.map((item) => {
-                return (
-                  <tr key={item.staff_id} className="border-b border-gray-300 h-12">
-                    <td className="h-10 pl-6 py-2">{item.dise_code}</td>
-                    <td className="h-10 pl-6 py-2">{item.staff_id}</td>
-                    <td className="h-10 pl-6 py-2 capitalize font-semibold">{item.first_name} {item.last_name}</td>
-                    {/* <td className="h-10 pl-6 py-2 lowercase">{item.email}</td>
-                  <td className="h-10 pl-6 py-2">{item.phone}</td>
-                  <td>{new Date(item.dob).toLocaleDateString("en-GB")}</td> */}
-                    <td className="h-10 pl-6 py-2 capitalize">{item.gender}</td>
-                    <td className="h-10 pl-6 py-2 capitalize">{item.designation}</td>
-                    <td className="h-10 pl-6 py-2 capitalize">{item.qualification}</td>
-                    <td className="h-10 pl-6 py-2">{item.experience}</td>
-                    {/* <td className="h-10 pl-6 py-2">{new Date(item.joining_date).toLocaleDateString("en-GB")}</td> */}
-                    <td className="h-10 pl-6 py-2">{item.salary}</td>
-                    {/* <td>
-                      <span className="h-10 m-2 pt-2 mt-3 p-2 bg-green-400 text-white font-medium rounded-md">
-                        {item.status}
-                      </span>
-                    </td> */}
-                    <td>
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleStatusChange(item.staff_id, e.target.value)}
-                        className={`p-2 rounded-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-1 transition duration-200 ease-in-out
-                          ${item.status === "Active"
-                            ? "bg-green-500 hover:bg-green-600 focus:ring-green-400"
-                            : item.status === "Inactive"
-                              ? "bg-red-500 hover:bg-red-600 focus:ring-red-400"
-                              : "bg-yellow-400 hover:bg-yellow-500 focus:ring-yellow-300 text-gray-800"
-                          }
-                      `}
-                      >
-                        <option value="Active" className='bg-white text-black'>Active</option>
-                        <option value="Inactive" className='bg-white text-black'>Inactive</option>
-                        <option value="On Leave" className='bg-white text-black'>On Leave</option>
-                      </select>
-                    </td>
-
-                    <td className='h-10 pl-6 py-2'>
-                      <FaEye
-                        className="cursor-pointer text-blue-500"
-                        onClick={() => handleView(item)} />
-                    </td>
-                    <td><GeneratePDF staff={item} /></td>
-                    {/* <td className=' m-1 hover:text-red-600 text-purple-500 px-4 py-2 text-sm sm:text-lg'><TfiDownload /></td> */}
-                    {/* <td className="h-10 pl-6 py-2">{new Date(item.created_at).toLocaleDateString("en-GB")}</td> */}
-                  </tr>
-                )
-              })
-            }
-          </tbody>
-        </table>
-      </div>
-
-
-      <div className="flex justify-center gap-2 mt-4">
-        <button
-          onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-          disabled={page === 1}
-          className="px-4 py-2 bg-purple-300 rounded disabled:opacity-50"
-        >
-          Prev
-        </button>
-
-        <span>{page} / {totalPages}</span>
-
-        <button
-          onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
-          disabled={page === totalPages}
-          className="px-4 py-2 bg-purple-300 rounded disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-
-      {open && selectedStaff && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8"
-            onClick={(e) => e.stopPropagation()}
+        <div className="relative inline-block">
+          <button
+            type="button"
+            onClick={() => {
+              setOpenDistrict(!openDistrict)
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
           >
-            {/* Header */}
-            <div className="flex justify-between items-center border-b-2 border-gray-500 pb-4">
-              <h2 className="flex items-center text-lg font-semibold sm:text-2xl font-bold">
-                <BsPeople className='m-2 p-1 bg-teal-500 font-medium text-5xl text-white shadow-xl rounded-md' />
-                Staff Details
-              </h2>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-gray-500 hover:text-red-500 text-xl cursor-pointer"
+            {selectedDistrict || 'All District'}
+            <IoIosArrowDown />
+          </button>
+
+          {openDistrict && (
+            <ul className="absolute mt-1 w-48 bg-white border rounded shadow-md max-h-60 overflow-y-auto z-50">
+
+              {/* All option */}
+              <li
+                className="px-4 py-2 hover:bg-gray-200 hover:text-black cursor-pointer font-semibold"
+                onClick={() => {
+                  setSelectedDistrict("");
+                  setOpenDistrict(false);
+                }}
               >
-                ✕
-              </button>
-            </div>
+                All Districts
+              </li>
 
-            {/* Body */}
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base">
+              {districts.map((item, index) => (
+                <li
+                  key={index}
+                  className="px-4 py-2 hover:bg-gray-200 hover:text-black cursor-pointer"
+                  onClick={() => {
+                    setSelectedDistrict(item.name)
+                    setOpenDistrict(false)
+                  }}
+                >
+                  {item.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
 
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Dise Code</p>
-                <p className="font-medium break-words">
-                  {selectedStaff.dise_code}
-                </p>
+      <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-separate border-spacing-0">
+            <thead className="bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10">
+              <tr>
+                {[
+                  { label: "Dise Code", key: "dise_code" },
+                  { label: "Staff ID", key: "staff_id" },
+                  { label: "Name", key: "first_name", filterable: true },
+                  { label: "Designation", key: "designation" },
+                  { label: "Gender", key: "gender" },
+                  { label: "Qualification", key: "qualification" },
+                  { label: "Experience", key: "experience" },
+                ].map((col) => (
+                  <th key={col.key} className="px-4 py-4 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider transition-colors hover:bg-slate-100/50">
+                    <div className="flex items-center gap-2 group whitespace-nowrap">
+                      <BiSortAlt2
+                        onClick={() => handleSort(col.key)}
+                        className="text-slate-400 group-hover:text-indigo-600 cursor-pointer transition-colors text-lg"
+                      />
+
+                      {col.filterable && activeSearchColumn === col.key ? (
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Search..."
+                          value={columnSearch}
+                          onChange={(e) => setColumnSearch(e.target.value)}
+                          className="w-28 px-2 py-1 text-xs border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-white"
+                        />
+                      ) : (
+                        <span
+                          className="cursor-pointer"
+                          onClick={() => col.filterable && setActiveSearchColumn(col.key)}
+                        >
+                          {col.label}
+                        </span>
+                      )}
+
+                      {col.filterable && (
+                        <div className="relative">
+                          <RiArrowDropDownLine
+                            className="cursor-pointer text-2xl text-slate-400 hover:text-indigo-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDropdown(prev => !prev);
+                            }}
+                          />
+                          {showDropdown && (
+                            <div className="absolute top-8 left-0 w-48 bg-white shadow-xl border border-slate-100 rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in duration-100">
+                              <div
+                                className="px-4 py-2 text-xs hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium text-slate-600"
+                                onClick={(e) => { e.stopPropagation(); setSelectedName(""); setShowDropdown(false); }}
+                              >
+                                All Staff Members
+                              </div>
+                              {uniqueNames.map((name, index) => (
+                                <div
+                                  key={index}
+                                  className="px-4 py-2 text-xs hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors text-slate-600"
+                                  onClick={() => { setSelectedName(name); setShowDropdown(false); }}
+                                >
+                                  {name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-4 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider">Status</th>
+                <th className="px-4 py-4 border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+  {sortedData.map((item) => (
+    <tr 
+      key={`${item.staff_id}-${item.role_id}`} 
+      className="group hover:bg-indigo-50/30 transition-colors duration-200"
+    >
+      {/* Basic Info Cells */}
+      <td className="px-6 py-4 text-sm font-medium text-slate-600">{item.dise_code}</td>
+      <td className="px-6 py-4 text-sm text-slate-500 font-mono">{item.staff_id}</td>
+      
+      {/* Name with subtle emphasis */}
+      <td className="px-6 py-4">
+        <div className="text-sm font-bold text-slate-900 capitalize leading-none">
+          {item.first_name} {item.last_name}
+        </div>
+        <div className="text-[10px] text-slate-400 mt-1 uppercase font-semibold tracking-tighter">
+          Staff Member
+        </div>
+      </td>
+
+      <td className="px-6 py-4 text-sm text-slate-600 capitalize">{item.rname}</td>
+      <td className="px-6 py-4 text-sm text-slate-500">{item.gender}</td>
+      <td className="px-6 py-4 text-sm text-slate-600 italic font-medium">{item.qualification}</td>
+      <td className="px-6 py-4 text-sm text-slate-600">{item.experience} Yrs</td>
+
+      {/* Modern Status Selector */}
+      <td className="px-6 py-4">
+        <div className="relative inline-block w-full min-w-[120px]">
+          <select
+            value={item.status}
+            onChange={(e) => handleStatusChange(item.staff_id, e.target.value)}
+            className={`appearance-none w-full px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border-2 transition-all cursor-pointer outline-none text-center
+              ${item.status === "Active"
+                ? "bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                : item.status === "Inactive"
+                  ? "bg-rose-50 border-rose-100 text-rose-700 hover:bg-rose-100"
+                  : "bg-amber-50 border-amber-100 text-amber-700 hover:bg-amber-100"
+              }`}
+          >
+            <option value="Active">● Active</option>
+            <option value="Inactive">● Inactive</option>
+            <option value="On Leave">● On Leave</option>
+          </select>
+        </div>
+      </td>
+
+      {/* Action Buttons Group */}
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-2">
+          {/* View Icon */}
+          <button
+            onClick={() => handleView(item)}
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+            title="View Details"
+          >
+            <FaEye size={16} />
+          </button>
+
+          {/* PDF Export */}
+          <div className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Export PDF">
+            <GeneratePDF
+              filename={`${item.first_name}_${item.last_name}.pdf`}
+              title={`${item.first_name} ${item.last_name} Info`}
+            >
+              <StaffPdfContent staff={item} />
+            </GeneratePDF>
+          </div>
+
+          {/* Edit Icon */}
+          <button
+            onClick={() => {
+              setUpdateOpen(true);
+              setUpdateStaff(item);
+            }}
+            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+            title="Edit Staff"
+          >
+            <BiSolidEditAlt size={18} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
+          </table>
+        </div>
+
+        {/* Modal  for Updating the staff values*/}
+        {updateOpen && updateStaff && (
+          <UpdateStaffModal
+            staff={updateStaff}
+            onClose={() => setUpdateOpen(false)}
+            refreshData={fetchSchoolData}
+          />
+        )}
+        <div className="flex justify-center gap-2 mt-4">
+          <button
+            onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+            disabled={page === 1}
+            className="px-4 py-2 bg-purple-300 rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          <span>{page} / {totalPages}</span>
+
+          <button
+            onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={page === totalPages}
+            className="px-4 py-2 bg-purple-300 rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
+        {open && selectedStaff && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+            onClick={() => setOpen(false)}
+          >
+            <div
+              className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center border-b-2 border-gray-500 pb-4">
+                <h2 className="flex items-center text-lg font-semibold sm:text-2xl font-bold">
+                  <BsPeople className='m-2 p-1 bg-teal-500 font-medium text-5xl text-white shadow-xl rounded-md' />
+                  Staff Details
+                </h2>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="text-gray-500 hover:text-red-500 text-xl cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
 
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Name</p>
-                <p className="font-medium break-words">
-                  {selectedStaff.first_name} {selectedStaff.last_name}
-                </p>
+              {/* Body */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base">
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Dise Code</p>
+                  <p className="font-medium break-words">
+                    {selectedStaff.dise_code}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Name</p>
+                  <p className="font-medium break-words">
+                    {selectedStaff.first_name} {selectedStaff.last_name}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Email</p>
+                  <p className="font-medium break-words">
+                    {selectedStaff.email || "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Phone</p>
+                  <p className="font-medium">{selectedStaff.phone || "-"}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Date of Birth</p>
+                  <p className="font-medium">
+                    {selectedStaff.dob
+                      ? new Date(selectedStaff.dob).toLocaleDateString("en-GB")
+                      : "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Gender</p>
+                  <p className="font-medium">{selectedStaff.gender}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Designation</p>
+                  <p className="font-medium">{selectedStaff.rname.toUpperCase()}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Qualification</p>
+                  <p className="font-medium">{selectedStaff.qualification}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Experience</p>
+                  <p className="font-medium">{selectedStaff.experience}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Joining Date</p>
+                  <p className="font-medium">
+                    {selectedStaff.joining_date
+                      ? new Date(selectedStaff.joining_date).toLocaleDateString("en-GB")
+                      : "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Salary</p>
+                  <p className="font-medium">{selectedStaff.salary}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500 text-xs uppercase">Created At</p>
+                  <p className="font-medium">
+                    {selectedStaff.created_at
+                      ? new Date(selectedStaff.created_at).toLocaleDateString("en-GB")
+                      : "-"}
+                  </p>
+                </div>
+
               </div>
 
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Email</p>
-                <p className="font-medium break-words">
-                  {selectedStaff.email || "-"}
-                </p>
+              {/* Footer */}
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base"
+                >
+                  Close
+                </button>
               </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Phone</p>
-                <p className="font-medium">{selectedStaff.phone || "-"}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Date of Birth</p>
-                <p className="font-medium">
-                  {selectedStaff.dob
-                    ? new Date(selectedStaff.dob).toLocaleDateString("en-GB")
-                    : "-"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Gender</p>
-                <p className="font-medium">{selectedStaff.gender}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Designation</p>
-                <p className="font-medium">{selectedStaff.designation}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Qualification</p>
-                <p className="font-medium">{selectedStaff.qualification}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Experience</p>
-                <p className="font-medium">{selectedStaff.experience}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Joining Date</p>
-                <p className="font-medium">
-                  {selectedStaff.joining_date
-                    ? new Date(selectedStaff.joining_date).toLocaleDateString("en-GB")
-                    : "-"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Salary</p>
-                <p className="font-medium">{selectedStaff.salary}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-500 text-xs uppercase">Created At</p>
-                <p className="font-medium">
-                  {selectedStaff.created_at
-                    ? new Date(selectedStaff.created_at).toLocaleDateString("en-GB")
-                    : "-"}
-                </p>
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 flex justify-end">
-              <button
-                onClick={() => setOpen(false)}
-                className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base"
-              >
-                Close
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-
-
-      <Toggle />
-
-
-
-    </div>
-  )
+      </div>
+      </div>
+      )
 }
 
-export default StaffDirectory
+      export default StaffDirectory

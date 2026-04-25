@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import DynamicPage from './DynamicPage'
+import { data, Link } from 'react-router-dom';
 import { SiVirustotal } from "react-icons/si";
 import { FaPeopleGroup } from "react-icons/fa6";
 import { PiStudentBold } from "react-icons/pi";
@@ -7,16 +7,23 @@ import { GrDocumentPerformance } from "react-icons/gr";
 import { SiBasicattentiontoken } from "react-icons/si";
 import { VscVmActive } from "react-icons/vsc";
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'
+import BarChart from './BarChart';
+import ProgressBar from './ProgressBar';
+import PerformanceBar from './PerformanceBar';
 import useStore from './common/store/store';
 
 const Dashboard = () => {
+  const token = useStore((state) => state.token);
+
   let [finalRes, fn] = useState({})
   let [staff, setStaff] = useState({})
   let [totalstudents, setTotalStudents] = useState({});
+  const [res, setRes] = useState([])
+  const [past30Staff, setPast30Staff] = useState([])
+  const [past30Schools, setPast30Schools] = useState([])
 
-  let { user } = useStore()
-  let navigate = useNavigate()
+  const [performancePercentage, setPerformancePercentage] = useState({});
+
 
   function getTotalSchools() {
     fetch('http://localhost:5008/totalschools')
@@ -28,8 +35,27 @@ const Dashboard = () => {
       })
   }
 
+
   useEffect(() => {
     getTotalSchools()
+  }, [])
+
+  async function getPast30DaysStaffCount() {
+    const result = await axios.get('http://localhost:5008/past-month/staff-count')
+    setPast30Staff(result.data)
+  }
+
+  useEffect(() => {
+    getPast30DaysStaffCount()
+  }, [])
+
+  async function getPast30DaysSchoolCount() {
+    const result = await axios.get('http://localhost:5008/past-month/school-count')
+    setPast30Schools(result.data)
+  }
+
+  useEffect(() => {
+    getPast30DaysSchoolCount()
   }, [])
 
   async function getTotalStaff() {
@@ -50,115 +76,223 @@ const Dashboard = () => {
     getTotalStudents()
   }, [])
 
+  const [chartData, setChartData] = useState(null)
+  //function for BarChartData
+  async function getSyllabusDataForChart() {
+    let result = await axios(`http://localhost:5008/barchart/data`)
+    //console.log(result.data);
 
-  console.log(user)
+    const transformData = {
+      labels: result.data.map((item) => item.district),
+      datasets: [
+        {
+          label: "Average Syllabus Completion Per District",
+          data: result.data.map((item) => parseInt(item.avg_syllabus)),
+          backgroundColor: "#8b5cf6",
+        },
+      ]
+    }
+    setChartData(transformData)
+  }
+
+  useEffect(() => {
+    getSyllabusDataForChart()
+  }, [])
+
+  function getSchoolManagementData() {
+    fetch('http://localhost:5008/schoolmanagement',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      .then((res) => res.json())
+      .then((res) => {
+        setRes(res)
+        //console.log(res);
+
+
+        //for counting performance value in number format
+        const countPerformance = res.data.reduce((acc, item) => {
+          const key = item.performance;
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {})
+
+        //console.log("performance: ", countPerformance)
+        //find total count performance
+        const totalCountPerformance = Object.values(countPerformance).reduce((sum, val) => sum + val, 0);
+
+        //performance percentage
+        const performancePercentage = {}
+        for (let key in countPerformance) {
+          performancePercentage[key] = ((countPerformance[key] / totalCountPerformance) * 100);
+        }
+        setPerformancePercentage(performancePercentage)
+        //console.log(performancePercentage);
+      });
+  }
+
+  useEffect(() => {
+    getSchoolManagementData()
+  }, [])
+
 
   return (
-    <div class="flex">
-      <div class="bg-gray-100 w-full min-h-screen">
-        <div class="flex flex-wrap">
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 className="font-medium pb-1">TOTAL SCHOOLS </h1>
-            <SiVirustotal className='absolute right-10 top-12 text-5xl bg-blue-400 rounded-md p-2 text-white' />
-            <h2 className="text-2xl pb-1 font-bold">{finalRes[0]?.total ?? 'Loading...'}</h2>
-            <h3 class="text-green-600 font-medium">+234</h3>
+    <div className="flex">
+      <div className="ml-0 bg-gray-100 w-full min-h-screen p-4 md:static z-20 transition-all duration-300">
+
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+
+          {/* Card */}
+          <Link to='/schoolmanagement'>
+            <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              {/* Header Section */}
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total Schools
+                </p>
+                <h2 className="text-3xl font-bold text-slate-900">
+                  {finalRes[0]?.total?.toLocaleString() ?? '---'}
+                </h2>
+              </div>
+
+              {/* Icon - Placed with better visual balance */}
+              <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <SiVirustotal className="text-2xl" />
+              </div>
+
+              {/* Footer Stats */}
+              <div className="mt-4 flex items-center gap-2">
+                <span className="flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  +{past30Schools[0]?.last_30_days}
+                </span>
+                <span className="text-xs text-slate-400 font-medium">from last 30 days</span>
+              </div>
+            </div>
+
+          </Link>
+
+          <Link to='/staffdirectory'>
+            <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              {/* Header Section */}
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total Staff Members
+                </p>
+                <h2 className="text-3xl font-bold text-slate-900">
+                  {staff[0]?.total?.toLocaleString() ?? '---'}
+                </h2>
+              </div>
+
+              {/* Icon - Using a soft green background to match the "growth" theme */}
+              <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-green-50 text-green-600">
+                <FaPeopleGroup className="text-2xl" />
+              </div>
+
+              {/* Footer Stats */}
+              <div className="mt-4 flex items-center gap-2">
+                <span className="flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
+                  + {past30Staff[0]?.last_30_days}
+                </span>
+                <span className="text-xs text-slate-400 font-medium">New joins this month</span>
+              </div>
+            </div>
+
+          </Link>
+
+          <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Students</p>
+              <h2 className="text-3xl font-bold text-slate-900">
+                {totalstudents[0]?.total_student?.toLocaleString() ?? '---'}
+              </h2>
+            </div>
+            <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600">
+              <PiStudentBold className="text-2xl" />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-700">+234</span>
+              <span className="text-xs text-slate-400 font-medium">New registrations</span>
+            </div>
           </div>
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 class="font-medium pb-1">TOTAL STAFF</h1>
-            <h2 class="text-2xl pb-1 font-bold">{staff[0]?.total ?? 'Loading...'}</h2>
-            <h3 class="text-green-600 font-medium">+1,456</h3>
-            <FaPeopleGroup className='absolute right-10 top-12 text-5xl bg-green-400 rounded-md p-2 text-white' />
+
+
+          <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Excellent Performance</p>
+              <h2 className="text-3xl font-bold text-slate-900">68.4%</h2>
+            </div>
+            <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+              <GrDocumentPerformance className="text-2xl" />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs font-bold text-green-600">↑ 3.2%</span>
+              <span className="text-xs text-slate-400 font-medium">vs last semester</span>
+            </div>
           </div>
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 class="font-medium pb-1">TOTAL STUDENTS</h1>
-            <h2 class="text-2xl pb-1 font-bold">{totalstudents[0]?.total_student ?? 'Loading...'}</h2>
-            <h3 class="text-green-600 font-medium">+234</h3>
-            <PiStudentBold className='absolute right-10 top-12 text-5xl bg-cyan-400 rounded-md p-2 text-white' />
+
+          <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Needs Attention</p>
+              <h2 className="text-3xl font-bold text-slate-900 text-red-600">142</h2>
+            </div>
+            <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-red-50 text-red-600">
+              <SiBasicattentiontoken className="text-2xl" />
+            </div>
+            <div className="mt-4">
+              <span className="text-xs font-semibold text-slate-500">Schools requiring follow-up</span>
+            </div>
           </div>
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 class="font-medium pb-1">EXCELLENT PERFORMANCE</h1>
-            <h2 class="text-2xl pb-1 font-bold">68.4%</h2>
-            <h3 class="text-green-600 font-medium">+3.2%</h3>
-            <GrDocumentPerformance className='absolute right-10 top-12 text-5xl bg-orange-400 rounded-md p-2 text-white' />
+
+          <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Districts</p>
+              <h2 className="text-3xl font-bold text-slate-900">55</h2>
+            </div>
+            <div className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-lg bg-pink-50 text-pink-600">
+              <VscVmActive className="text-2xl" />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+              <span className="text-xs font-medium text-slate-500">All regions operational</span>
+            </div>
           </div>
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 class="font-medium pb-1">NEEDS ATTENTION</h1>
-            <h2 class="text-2xl pb-1 font-bold">142</h2>
-            <h3 class="text-green-600 font-medium">Schools</h3>
-            <SiBasicattentiontoken className='absolute right-10 top-12 text-5xl bg-red-500 rounded-md p-2 text-white' />
-          </div>
-          <div class="relative h-35 w-104 rounded-md bg-white m-4 p-6 shadow-xl transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl">
-            <h1 class="font-medium pb-1">ACTIVE DISTRICTS</h1>
-            <h2 class="text-2xl pb-1 font-bold">55</h2>
-            <h3 class="text-green-600 font-medium">All Active</h3>
-            <VscVmActive className='absolute right-10 top-12 text-5xl bg-pink-400 rounded-md p-2 text-white' />
-          </div>
+
         </div>
 
-
-        <h2>Welcome: {user}</h2>
-        <div class="w-full rounded-md bg-white m-4 p-6">
-          <div class="flex justify-between">
-            <h1 class="text-2xl font-medium">Recent School Activities</h1>
-            <h3 class="text-blue-500 cursor-pointer font-medium">View All</h3>
+        <div className='flex mt-4 left-0 grid sm:grid-cols-1 md:grid-cols-2'>
+          <div className="w-full my-2 ">
+            {chartData ? (
+              <BarChart 
+                data={chartData} 
+                title="Average Syllabus Completion Per District"
+              />
+            ) : (
+              <p>Loading chart data...</p>
+            )}
           </div>
 
-          <div class="relative h-20 w-full rounded-md bg-violet-50 mt-2 p-3 ">
-            <h1 class="font-medium pb-1">Government Higher Secondary School</h1>
-            <h2 class="pb-1 text-gray-500">MP-BPL-001 • Bhopal</h2>
-            <div class="absolute top-3 right-3 text-sm rounded-full bg-green-100 text-green-800 p-1">
-              <h6 class="">excellent</h6>
+          <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-6 mx-auto my-2 ">
+            <h1 className="text-2xl font-semibold mb-4 text-gray-800">Performance Distribution</h1>
+            <hr className='text-gray-300' />
+            <div className="max-w-md mx-auto mt-4">
+              {["Excellent", "Good", "Average", "Poor"].map((label) => (
+                <PerformanceBar
+                  key={label}
+                  label={label}
+                  value={performancePercentage[label] || 0}
+                />
+              ))}
             </div>
-            <div class="absolute top-9 right-10 text-gray-500">
-              <h6>85% Complete</h6>
-            </div>
-          </div>
-          <div class="h-20 w-78% rounded-md bg-violet-50 mt-2 p-3 relative">
-            <h1 class="font-medium pb-1">Saraswati Vidya Mandir</h1>
-            <h2 class="pb-1 text-gray-500">MP-IND-042 • Indore</h2>
-            <div class="absolute top-3 right-10 text-sm rounded-full bg-blue-100 text-blue-800 p-1">
-              <h6 class="">good</h6>
-            </div>
-            <div class="absolute top-9 right-10 text-gray-500">
-              <h6>78% Complete</h6>
-            </div>
+
           </div>
 
-          <div class="h-20 w-78% rounded-md bg-violet-50 mt-2 p-3 relative">
-            <h1 class="font-medium pb-1">Maharana Pratap School</h1>
-            <h2 class="pb-1 text-gray-500">MP-JBL-128 • Jabalpur</h2>
-            <div class="absolute top-3 right-10 text-sm rounded-full bg-green-100 text-green-800 p-1">
-              <h6 class="">excellent</h6>
-            </div>
-            <div class="absolute top-9 right-10 text-gray-500">
-              <h6>92% Complete</h6>
-            </div>
-          </div>
-          <div class="h-20 w-78% rounded-md bg-violet-50 text-green-800 mt-2 p-3 relative">
-            <h1 class="font-medium pb-1">Primary School Simariya</h1>
-            <h2 class="pb-1 text-gray-500">MP-REW-256 • Rewa</h2>
-            <div class="absolute top-3 right-10 text-sm rounded-full bg-red-100 text-red-800 p-1">
-              <h6 class="">poor</h6>
-            </div>
-            <div class="absolute top-9 right-10 text-gray-500">
-              <h6>85% Complete</h6>
-            </div>
-          </div>
-          <div class="h-20 w-78% rounded-md bg-violet-50 mt-2 p-3 relative">
-            <h1 class="font-medium pb-1">Govt Excellence School</h1>
-            <h2 class="pb-1 text-gray-500">MP-GWL-089 • Gwalior</h2>
-            <div class="absolute top-3 right-10 text-sm rounded-full bg-green-100 text-green-800 p-1">
-              <h6 class="">excellent</h6>
-            </div>
-            <div class="absolute top-9 right-10 text-gray-500">
-              <h6>85% Complete</h6>
-            </div>
-          </div>
 
-        </div >
+        </div>
 
-        <div class="h-70 rounded-md bg-white m-4 p-6">
-          <h1 class="text-2xl font-medium">District Performance</h1>
+        <div className="h-70 rounded-md bg-white m-4 p-6">
+          <h1 className="text-2xl font-medium">District Performance</h1>
           <h4>Bhopal</h4>
           <div className="w-full h-2 bg-green-100 rounded-full overflow-hidden">
             <div
@@ -202,9 +336,9 @@ const Dashboard = () => {
             />
           </div>
         </div>
-        <DynamicPage />
+
       </div>
-    </div>
+    </div >
   )
 }
 

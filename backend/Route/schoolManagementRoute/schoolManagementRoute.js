@@ -1,12 +1,19 @@
 const express = require('express')
 const schoolRouter = express.Router()
-const {getData, postSchoolData, getSchoolNameFilter, applyPagination} = require('../../Controller/schoolManagementController/schoolManagementController')
-const {validateSchoolDetailSchema} = require('../../Controller/projectValidations/projectValidations')
+
+const { getData, postSchoolData, getSchoolNameFilter, sendAlert} = require('../../Controller/schoolManagementController/schoolManagementController')
+const { validateSchoolDetailSchema } = require('../../Controller/projectValidations/projectValidations')
 const { authenticate } = require('../../Controller/authMiddleware/authMiddleware')
 
-schoolRouter.get('/schoolmanagement', getData)
+const applyPaginations = require('../../Controller/Pagination/Pagination')
+
+const connection = require('../../Model/dbConnect')
+const paginateSchoolManagement = applyPaginations(connection)("schools_detail", "schoolName");
+
+schoolRouter.get('/schoolmanagement', authenticate, getData)
 schoolRouter.post('/schooldetail', validateSchoolDetailSchema, postSchoolData)
-schoolRouter.get('/searchschool', getSchoolNameFilter)
-schoolRouter.get('/schoolmanpagination', applyPagination)
+schoolRouter.get('/searchschool', getSchoolNameFilter);
+schoolRouter.get('/trigger-alert', sendAlert);
+
 
 module.exports = schoolRouter

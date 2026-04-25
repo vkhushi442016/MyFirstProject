@@ -12,7 +12,19 @@ let getISData = (req, res) => {
     })
 }
 
+const getFacilitiesAvg = (req, res) => {
+    let sqlquery = 'SELECT ROUND(AVG(drinking_water)*100, 1) drinking_water_avg, ROUND(AVG(kitchen)*100, 1) kitchen_avg, ROUND(AVG(separate_classrooms)*100, 1) separate_classroom_avg, ROUND(AVG(electricity)*100, 1) electricity_avg from facilities'
+
+    connection.query(sqlquery, (error, result) => {
+        if (error) {
+            console.log("Error: ", error.message);
+        } else {
+            return res.send(result);
+        }
+    })
+}
 
 
 
-module.exports = { getISData }
+
+module.exports = { getISData, getFacilitiesAvg }

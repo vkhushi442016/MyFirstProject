@@ -1,6 +1,10 @@
 const connection = require('../../Model/dbConnect')
+const socket = require('../SocketIO/SocketIO')
+
 
 let getData = (req, res) => {
+    console.log("AUTH:", req.headers.authorization);
+    
     let sqlquery = 'SELECT * FROM schools_detail'
 
     connection.query(sqlquery, (error, result) => {
@@ -73,5 +77,16 @@ let applyPagination = (req, res) => {
     });
 }
 
+const sendAlert = (req, res) => {
+    const io = socket.getIO();
 
-module.exports = { getData, postSchoolData, getSchoolNameFilter, applyPagination }
+    io.emit('alert', {
+        message: "School alert",
+        time: new Date()
+    });
+
+    res.send("Alert Sent");
+}
+
+
+module.exports = { getData, postSchoolData, getSchoolNameFilter, applyPagination, sendAlert }

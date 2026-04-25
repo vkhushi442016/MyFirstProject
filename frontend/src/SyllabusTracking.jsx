@@ -4,21 +4,46 @@ import ProgressBar from './ProgressBar'
 import axios from 'axios'
 import PieChart from './PieChart'
 import DoughnutChart from './DoughnutChart'
+import { IoIosArrowDown } from "react-icons/io";
 
 const SyllabusTracking = () => {
   const [res, setRes] = useState([])
   const [data, setData] = useState([])
   const [hsdata, setHsData] = useState([])
 
+  const [selectedDistrict, setSelectedDistrict] = useState('')  //Dropdown selection of district
+  const [openDistrict, setOpenDistrict] = useState(false);
+  const [district, setDistrict] = useState([])
+  const [filteredData, setFilteredData] = useState([])
+
   async function getSyllabusData() {
     const result = await fetch('http://localhost:5008/syllabusdata');
     const response = await result.json();
     setRes(response);
+
+
+    setFilteredData(response)
+
+    const sortDistrict = response.filter((item) =>
+      selectedDistrict ? item.district === selectedDistrict : true)
+
+    setDistrict(sortDistrict)
+    console.log(response)
   }
 
   useEffect(() => {
-    getSyllabusData()
-  }, [])
+    getSyllabusData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedDistrict) {
+      // show only the selected district
+      setFilteredData(res.filter(item => item.district === selectedDistrict));
+    } else {
+      // show all if no district selected
+      setFilteredData(res);
+    }
+  }, [selectedDistrict, res]);
 
   async function getMiddleSchoolSyllabus() {
     const result = await fetch('http://localhost:5008/syllabusdatamiddleschool');
@@ -67,14 +92,14 @@ const SyllabusTracking = () => {
             Number(item.class2 || 0) +
             Number(item.class3 || 0) +
             Number(item.class4 || 0) +
-            Number(item.class5 || 0) 
+            Number(item.class5 || 0)
           ) / 5;
         return sum + avgPerRow;
       }, 0) / res.length
     ).toFixed(2)
     : "0.00";
 
-    const averageOfAveragesHS = hsdata.length
+  const averageOfAveragesHS = hsdata.length
     ? (
       hsdata.reduce((sum, item) => {
         const avgPerRow =
@@ -97,36 +122,84 @@ const SyllabusTracking = () => {
     ).toFixed(2)
     : "0.00";
 
-  console.log("Average of all Primary:", averageOfAveragesHS);
-
 
   return (
-    <div>
+    <div className=''>
       <h1 className='text-2xl m-1 font-bold'>Syllabus Tracking 2025-26</h1>
       <hr className='border-gray-300 m-2' />
-      <h1 className='text-xl m-1 font-semibold'>Syllabus Completion</h1>
+
+      <div className='relative flex'>
+        <h1 className='text-xl m-1 mb-2 font-semibold'>Syllabus Completion</h1>
+      </div>
       <div className='flex justify-between bg-white'>
         <div className='m-3'>
           <h2 className="text-xl font-semibold text-center mb-4">
             Primary School
           </h2>
-          <DoughnutChart averageOfAverages={averageOfAveragesPrimary} />
+          <DoughnutChart value={averageOfAveragesPrimary} />
         </div>
         <div className='m-3'>
           <h2 className="text-xl font-semibold text-center mb-4">
             Middle School
           </h2>
-          <DoughnutChart averageOfAverages={averageOfAverages} />
+          <DoughnutChart value={averageOfAverages} />
         </div>
         <div className='m-3'>
           <h2 className="text-xl font-semibold text-center mb-4">
             Higher Secondary School
           </h2>
-            <DoughnutChart averageOfAverages={averageOfAveragesHS}/>
+          <DoughnutChart value={averageOfAveragesHS} />
         </div>
       </div>
-      <div className='m-2'>
+
+      <div className='relative flex m-2 justify-between'>
         <span className='text-2xl'>Primary School</span>
+
+        <div
+          tabIndex={0}
+          onBlur={() => setOpenDistrict(false)} // close dropdown when clicked outside
+          className="relative inline-block">
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Button clicked");
+              setOpenDistrict(prev => !prev)}
+              
+            }
+            className="flex items-center gap-2 px-4 py-2 rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+          >
+            {selectedDistrict || 'All District'}
+            <IoIosArrowDown />
+          </button>
+
+          {openDistrict && (
+            <ul className="absolute left-0 mt-2 w-35 max-h-40 overflow-y-auto bg-white border border-gray-300 rounded shadow-lg z-50">
+
+              <li
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedDistrict("");
+                  setOpenDistrict(false);
+                }}
+              >
+                All Districts
+              </li>
+
+              {district.map((item) => (
+                <li
+                  key={item.dise_code}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setSelectedDistrict(item.district);
+                    setOpenDistrict(false);
+                  }}
+                >
+                  {item.district}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className='w-full overflow-x-auto overflow-y-visible'>
@@ -135,6 +208,7 @@ const SyllabusTracking = () => {
             <tr className='border-b border-gray-300 h-11 px-4'>
               <th className="font-normal">Dise Code</th>
               <th className="font-normal">School Name</th>
+              <th className="font-normal">District</th>
               <th className="font-normal">Class 1</th>
               <th className="font-normal">Class 2</th>
               <th className="font-normal">Class 3</th>
@@ -146,7 +220,7 @@ const SyllabusTracking = () => {
           </thead>
           <tbody>
             {
-              res.map((item) => {
+              filteredData.map((item) => {
                 const average =
                   (
                     Number(item.class1) +
@@ -159,6 +233,7 @@ const SyllabusTracking = () => {
                   <tr className='border-b border-gray-300 h-12'>
                     <td className="h-11 px-4 pl-6 py-2">{item.dise_code}</td>
                     <td className="h-11 px-4 pl-6 py-2 font-semibold">{item.schoolName}</td>
+                    <td className="h-11 px-4 pl-6 py-2">{item.district}</td>
                     <td className="h-11 px-4 pl-6 py-2">{item.class1}</td>
                     <td className="h-11 px-4 pl-6 py-2">{item.class2}</td>
                     <td className="h-11 px-4 pl-6 py-2">{item.class3}</td>

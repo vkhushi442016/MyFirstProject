@@ -23,7 +23,7 @@ const StaffPdfContent = ({ staff }) => {
             ["Email", staff.email],
             ["Phone", staff.phone],
             ["Gender", staff.gender],
-            ["Designation", staff.designation],
+            ["Designation", staff.rname.toUpperCase()],
             ["Qualification", staff.qualification],
             ["Experience", staff.experience],
             ["Salary", `$${staff.salary}`],

@@ -14,7 +14,7 @@ import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
     return (
-        <div className="w-2/13 relative">
+        <div className="flex w-64 relative">
             <div className="w-3xs h-screen text-base m-2 p-2 fixed top-18">
                 <div>
                     <NavLink

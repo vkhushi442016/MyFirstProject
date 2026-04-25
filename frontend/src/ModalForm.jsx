@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoMdPersonAdd } from "react-icons/io";
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
+import toast from "react-hot-toast";
 
 const ModalForm = () => {
     const [open, setOpen] = useState(false);
 
     function postStaffDetail(values) {
         console.log("Submitting:", values);
+        delete values.designation;
         fetch('http://localhost:5008/staffdetail', {
             method: 'POST',
             headers: {
@@ -19,19 +21,29 @@ const ModalForm = () => {
             .then((res) => {
                 console.log(res);
             })
+        toast.success("Staff added successfully")
     }
+
+    const [roles, setRoles] = useState([]);
+
+    useEffect(() => {
+        fetch("http://localhost:5008/roles")
+            .then(res => res.json())
+            .then(data => setRoles(data))
+            .catch(err => console.log(err));
+    }, []);
 
     const formik = useFormik({
         initialValues: {
             dise_code: '',
-            staff_id: '',
+            // staff_id: '',
             first_name: '',
             last_name: '',
             email: '',
             phone: '',
             dob: '',
             gender: '',
-            designation: '',
+            role_id: '',
             qualification: '',
             experience: '',
             joining_date: '',
@@ -39,15 +51,15 @@ const ModalForm = () => {
             status: '',
         },
         validationSchema: Yup.object({
-            dise_code: Yup.string().matches(/^\d{11}$/, "DISE code must be exactly 11 digits").required('Required'),         //   /^d{11}$/ short hand = /^[0-9]{11}$/
-            staff_id: Yup.string().required('Required'),
+            dise_code: Yup.string().matches(/^\d{11}$/, "Dise code must be exactly 11 digits").required('Required'),         //   /^d{11}$/ short hand = /^[0-9]{11}$/
+            //staff_id: Yup.string().required('Required'),
             first_name: Yup.string().required('Required'),
             last_name: Yup.string().required('Required'),
             email: Yup.string().required('Required'),
             phone: Yup.string().required('Required'),
             dob: Yup.string().required('Required'),
             gender: Yup.string().required('Required'),
-            designation: Yup.string().required('Required'),
+            role_id: Yup.string().required('Required'),
             qualification: Yup.string().required('Required'),
             experience: Yup.string().required('Required'),
             joining_date: Yup.string().required('Required'),
@@ -62,14 +74,29 @@ const ModalForm = () => {
             //   performance: Yup.string().required('Required'),
             //   syllabus: Yup.string().matches(/^[0-9]+$/, 'must be a number').required('Required'),
         }),
-        onSubmit: (values, { resetForm }) => {
-            console.log("Formik submit triggered!", values);
-            postStaffDetail(values);
-            resetForm();
-            //toast.success("Teacher Added Successfully")
+        onSubmit: async (values, { resetForm }) => {
+            console.log("onSubmit triggered");
+            try {
+                if (values.staff_id) {
+                    // Update existing staff
+                    const res = await axios.patch(
+                        `http://localhost:5008/update/staff/${values.staff_id}`,
+                        values
+                    );
+                    toast.success(res.data.message || "Staff updated successfully");
+                } else {
+                    // Add new staff
+                    await postStaffDetail(values);
+                }
+
+                resetForm();
+                setOpen(false);
+            }
+            catch (error) {
+                toast.error(error.response?.data?.message || "Operation failed");
+            }
         }
     })
-
 
 
     return (
@@ -100,7 +127,7 @@ const ModalForm = () => {
                                 </div>
                             </div>
                             <hr />
-
+                            
                             {/* Your Form */}
                             <form
                                 onSubmit={formik.handleSubmit}
@@ -118,7 +145,8 @@ const ModalForm = () => {
                                             value={formik.values.dise_code}
                                             onChange={formik.handleChange}
                                             onBlur={formik.handleBlur}
-                                            className={`rounded-md w-full h-11 px-4 border border-blue-200 transition-colors duration-200 ${formik.values.dise_code ? "bg-white" : " hover:bg-blue-50 focus:bg-white"} focus:ring-2 focus:ring-blue-300`}
+                                            className={`rounded-md w-full h-11 px-4 border border-blue-200 transition-colors duration-200 ${formik.values.dise_code
+                                                ? "bg-white" : " hover:bg-blue-50 focus:bg-white"} focus:ring-2 focus:ring-blue-300`}
                                         />
 
                                         {formik.errors.dise_code && formik.touched.dise_code ?
@@ -127,7 +155,7 @@ const ModalForm = () => {
                                         }
                                     </div>
 
-                                    <div>
+                                    {/* <div>
                                         <label className="block text-sm font-medium text-gray-700">
                                             Staff ID
                                         </label>
@@ -146,7 +174,7 @@ const ModalForm = () => {
                                             (<div className='text-red-500 text-sm'>{formik.errors.staff_id}</div>) :
                                             null
                                         }
-                                    </div>
+                                    </div> */}
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">
@@ -188,6 +216,33 @@ const ModalForm = () => {
                                             (<div className='text-red-500 text-sm'>{formik.errors.last_name}</div>) :
                                             null
                                         }
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Designation
+                                        </label>
+
+                                        <select
+                                            name="role_id"
+                                            value={formik.values.role_id}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            className={`rounded-md w-full h-11 px-4 border border-blue-200 transition-colors duration-200 ${formik.values.status ? "bg-white" : "hover:bg-blue-50 focus:bg-white"
+                                                } focus:ring-2 focus:ring-blue-300`}
+                                        >
+                                            <option value="">Select Designation</option>
+
+                                            {roles.map(role => (
+                                                <option key={role.role_id} value={role.role_id}>
+                                                    {role.rname.toUpperCase()}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        {formik.errors.designation && formik.touched.designation && (
+                                            <div className="text-red-500 text-sm">{formik.errors.designation}</div>
+                                        )}
                                     </div>
 
                                     <div>
@@ -275,7 +330,7 @@ const ModalForm = () => {
                                         )}
                                     </div>
 
-                                    <div>
+                                    {/* <div>
                                         <label className="block text-sm font-medium text-gray-700">
                                             Designation
                                         </label>
@@ -293,7 +348,7 @@ const ModalForm = () => {
                                             (<div className='text-red-500 text-sm'>{formik.errors.designation}</div>) :
                                             null
                                         }
-                                    </div>
+                                    </div> */}
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">

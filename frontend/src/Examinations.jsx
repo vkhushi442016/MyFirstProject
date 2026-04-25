@@ -1,5 +1,5 @@
 import React from 'react'
-
+import AddNewSchoolForm from './AddNewSchoolForm'
 const Examinations = () => {
   return (
     <div>
