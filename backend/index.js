@@ -1,4 +1,6 @@
 let express = require('express')
+let redisClient = require('./Controller/Redis/redis.js');
+
 let app = express();
 let dotenv = require('dotenv')
 dotenv.config();
@@ -56,12 +58,29 @@ const route13 = require('./Route/TeacherRoutes/studentsRoute/studentsRoute')
 app.use('/', route13)
 
 
-const route14 = require('./Route/TeacherRoutes/trackSyllabusUpdate/trackSyllabusUpdate')
+const route14 = require('./Route/TeacherRoutes/trackSyllabusUpdate/trackSyllabusUpdate');
 app.use('/', route14)
 
+console.log("Reaching to the route");
 
+const studentAttendanceRouter = require('./Route/TeacherRoutes/StudentsAttendanceRoute.js')
+app.use('/', studentAttendanceRouter)
+
+const startServer = async () => {
+  try {
+    
+    await redisClient.connect();
+
+    console.log("Redis connected:", redisClient.isOpen);
 
 
 server.listen(port, ()=>{
     console.log("Server is running on port", port);
 })
+
+  } catch (err) {
+    console.error("Startup error:", err);
+  }
+};
+
+startServer();

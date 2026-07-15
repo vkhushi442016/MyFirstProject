@@ -16,7 +16,7 @@ let getLoginData = (req, res) => {
 
 let postLoginData = async (req, res) => {
     let { username, password } = req.body;
-
+console.log(req.body);
     let query = `
             SELECT 
     l.username,
@@ -50,10 +50,11 @@ WHERE l.username = ?;
             return res.status(401).send({ message: "Invalid Credentials" })
         }
         const token = jwt.sign({
-            username: result[0].username
+            username: result[0].username,
+            staff_id: result[0].staff_id,
         },
-            process.env.SECRET_KEY,
-            { expiresIn: "1d" })
+        process.env.SECRET_KEY,
+        { expiresIn: "1d" })
         res.json({
             username: username,
             staff_id: result[0].staff_id,

@@ -261,27 +261,3 @@ const PrincipleDashboard = () => {
 }
 
 export default PrincipleDashboard
-
-
-
-
-
-{/* 
-            {classStats.map((cls) => (
-                <div key={cls.class_id} className="mb-4">
-
-                    <h3 className="font-semibold">{cls.className}</h3>
-
-                    <div className="w-full bg-gray-200 h-3 rounded">
-                        <div
-                            className="bg-blue-500 h-3 rounded"
-                            style={{ width: `${cls.completion_percentage}%` }}
-                        ></div>
-                    </div>
-
-                    <p className="text-sm mt-1">
-                        {cls.completion_percentage}% Completed
-                    </p>
-
-                </div>
-            ))} */}

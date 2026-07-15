@@ -6,7 +6,8 @@ import { IoSearch, IoAdd, IoChevronDown } from "react-icons/io5";
 import { MdOutlineEdit } from "react-icons/md";
 import AddStudentForm from './AddStudentForm';
 import { Pagination } from '../UI/Pagination';
-import { HiOutlineIdentification, HiOutlineMail, HiOutlinePhone, HiOutlineUserGroup, HiUser, HiOutlineUser, HiOutlinePencilAlt   } from 'react-icons/hi';
+import { HiOutlineIdentification, HiOutlineMail, HiOutlinePhone, HiOutlineUserGroup, HiUser, HiOutlineUser, HiOutlinePencilAlt } from 'react-icons/hi';
+
 const Students = () => {
     const dise_code = useStore((state) => state.dise_code);
 
@@ -23,6 +24,9 @@ const Students = () => {
         const studentsResult = await axios.get(`http://localhost:5008/api/students-data/${dise_code}?page=${page}&limit=${limit}`)
         setStudents(studentsResult.data.data)
         setTotalPages(studentsResult.data.totalPages);
+
+        console.log(studentsResult.data)
+
     }
 
     useEffect(() => {
@@ -35,9 +39,9 @@ const Students = () => {
 
             formData.append("student_name", student.student_name)
             formData.append("class", student.class)
-            formData.append("age", student.age)
+            formData.append("ag_e", student.ag_e)
             formData.append("gender", student.gender)
-            formData.append("guardian_name", student.guardian_name)
+            formData.append("father_name", student.father_name)
             formData.append("contact", student.contact)
 
             if (student.imageFile) {
@@ -88,9 +92,9 @@ const Students = () => {
     const [editData, setEditData] = useState({
         student_name: "",
         class: "",
-        age: "",
+        ag_e: "",
         gender: "",
-        guardian_name: "",
+        father_name: "",
         contact: "",
         passport_img: "",
 
@@ -104,7 +108,7 @@ const Students = () => {
         if (selectedStudent) {
             setEditData({
                 ...selectedStudent, // <- this runs when selectedStudent changes
-
+                ag_e: formatDate(selectedStudent.ag_e),
                 profilePic: "",
                 imageFile: null
             })
@@ -119,9 +123,35 @@ const Students = () => {
         await getStudentsData(dise_code); //fresh data from DB
 
         setSelectedStudent(null); // close sidebar
+        setSidebarMode("view")
     };
 
 
+
+    function calculateAge(dobString) {
+        if (!dobString) return "N/A";
+
+        const [year, month, day] = dobString.split("T")[0].split("-");
+        const birthDate = new Date(year, month - 1, day);
+        const today = new Date();
+
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
+            age--;
+        }
+
+        return age;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return "N/A";
+        return dateString.split("T")[0];
+    }
 
     return (
         <div className="flex flex-col gap-6 p-6 bg-slate-50 min-h-screen">
@@ -220,6 +250,7 @@ const Students = () => {
                                 <th className="px-4 py-3 font-semibold text-gray-900">ID</th>
                                 <th className="px-4 py-3 font-semibold text-gray-900">Name</th>
                                 <th className="px-4 py-3 font-semibold text-gray-900">Class</th>
+                                <th className="px-4 py-3 font-semibold text-gray-900 text-center">DOB</th>
                                 <th className="px-4 py-3 font-semibold text-gray-900 text-center">Age</th>
                                 <th className="px-4 py-3 font-semibold text-gray-900">Gender</th>
                                 <th className="px-4 py-3 font-semibold text-gray-900">Father's Name</th>
@@ -248,7 +279,12 @@ const Students = () => {
                                             {student.class}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-700 text-center">{student.age}</td>
+                                    <td className="px-4 py-3 text-gray-700 text-center">
+                                        {student.ag_e ? formatDate(student.ag_e) : "N/A"}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 text-center">
+                                        {calculateAge(student.ag_e)}
+                                    </td>
                                     <td className="px-4 py-3 text-gray-700 uppercase text-xs">{student.gender}</td>
                                     <td className="px-4 py-3 text-gray-700">{student.father_name}</td>
                                     <td className="px-4 py-3 text-gray-500 font-mono text-sm">{student.contact}</td>
@@ -291,8 +327,8 @@ const Students = () => {
                                     <button
                                         onClick={() => setSidebarMode("view")}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-200 ${sidebarMode === "view"
-                                                ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/50"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                            ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/50"
+                                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                             }`}
                                     >
                                         <HiOutlineUser size={16} className={sidebarMode === "view" ? "text-indigo-600" : "text-slate-400"} />
@@ -302,8 +338,8 @@ const Students = () => {
                                     <button
                                         onClick={() => setSidebarMode("edit")}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-200 ${sidebarMode === "edit"
-                                                ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/50"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                            ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200/50"
+                                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                             }`}
                                     >
                                         <HiOutlinePencilAlt size={16} className={sidebarMode === "edit" ? "text-indigo-600" : "text-slate-400"} />
@@ -359,13 +395,15 @@ const Students = () => {
                                                 </div>
                                                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                                     <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Age</p>
-                                                    <p className="text-sm font-bold text-slate-700">{selectedStudent?.age || 'N/A'} Yrs</p>
+                                                    <p className="text-sm font-bold text-slate-700">{calculateAge(selectedStudent?.ag_e)} Yrs</p>
                                                 </div>
                                             </div>
 
                                             {/* Contact Information */}
                                             <div className="space-y-4">
-                                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Contact Details</h4>
+                                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">
+                                                    Contact Details
+                                                </h4>
 
                                                 <div className="flex items-center gap-3">
                                                     <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><HiOutlineMail size={18} /></div>
@@ -506,11 +544,11 @@ const Students = () => {
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Age</label>
+                                                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Date of Birth</label>
                                                         <input
-                                                            type="number"
-                                                            value={editData.age}
-                                                            onChange={(e) => setEditData({ ...editData, age: e.target.value })}
+                                                            type="date"
+                                                            value={editData.ag_e || ""}
+                                                            onChange={(e) => setEditData({ ...editData, ag_e: e.target.value })}
                                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white outline-none transition-all"
                                                         />
                                                     </div>

@@ -1,22 +1,44 @@
 const connection = require('../../Model/dbConnect')
 const { sendMailOnProfileCreated } = require('../../Controller/sendGridMailController/sendGridMailController')
 const socket = require('../SocketIO/SocketIO');
+let redisClient = require('../Redis/redis');
 
-const getStaffData = (req, res) => {
-    let query = `
+const getStaffData = async (req, res) => {
+    const cacheKey = "staffData";
+    try {
+        const cacheData = await redisClient.get(cacheKey);
+
+        if (cacheData) {
+            console.log("Serving from redis");
+            return res.send(JSON.parse(cacheData));
+        }
+
+        let query = `
             SELECT s.*, r.rname
             FROM staff s
             JOIN role_assignment ra
             ON s.staff_id = ra.staff_id
             JOIN roles r
-            ON ra.role_id = r.role_id`;
-    connection.query(query, (err, result) => {
-        if (err) {
-            console.log("Error: ", err.message);
-        } else {
-            return res.send(result)
-        }
-    })
+            ON ra.role_id = r.role_id
+            `;
+
+        connection.query(query, async (err, result) => {
+            if (err) {
+                console.log("Error: ", err.message);
+            }
+
+            await redisClient.set(cacheKey, JSON.stringify(result), {
+                EX: 60,
+            });
+
+            console.log("Serving from DB");
+
+            return res.send(result);
+        });
+    } catch (error) {
+        console.log("Redis Error:", error.message);
+        return res.status(500).send(error.message);
+    }
 }
 
 const getRoles = (req, res) => {
@@ -30,8 +52,6 @@ const getRoles = (req, res) => {
         res.send(result);
     });
 };
-
-console.log("🔥 NEW CODE RUNNING");
 
 const postStaffData = (req, res) => {
     const { role_id, email, dise_code, ...staffData } = req.body;
@@ -77,37 +97,61 @@ const postStaffData = (req, res) => {
                     connection.query(getRoleName, [role_id], (err4, roleRes) => {
                         if (err4) return res.status(500).send(err4);
 
-                        console.log("Step 5: role fetched", roleRes);
                         const roleName = roleRes[0]?.rname;
 
                         console.log("Step 5: role fetched", roleName);
 
-                        if (roleName == "principal") {
-                            
-                            console.log("BEFORE EMIT");
-                                const io = socket.getIO()
+                        console.log("ABOUT TO EMIT ALERT");
+                        const io = socket.getIO();
+                        console.log("IO OBJECT:", !!io);
 
-                                io.emit('alert', {
-                                    type: 'success',
-                                    message: `New Principal Assigned: ${staffData.first_name} ${staffData.last_name}`,
-                                    time: new Date()
-                                });
-                                
-                            console.log("After EMIT");
+                        console.log("FORCE EMIT TEST");
 
-                        }else{
-                              console.log("BEFORE EMIT");
-                            const io = socket.getIO();
+                        io.emit("alert", {
+                            message: "TEST ALERT WORKING",
+                            time: new Date()
+                        });
 
-                            console.log("Emitting alert for:", staffData.first_name);
 
-                            io.emit('alert', {
+                        // 1. Admin always gets ONE notification
+//                         console.log("Emitting succccccccessssss")
+//                         io.emit("alert", {
+//     type: "success",
+//     message: `New Staff Added: ${staffData.first_name} ${staffData.last_name}`,
+//     time: new Date()
+// });
+// console.log("Compllleeetteddd..........");
+
+                        if (staffData.first_name) {
+                            io.to("adminRoom").emit('alert', {
                                 type: 'success',
-                                message: `New Staff Added: ${staffData.first_name} ${staffData.last_name} (${roleName})`,
+                                message: `New ${roleName} Added: ${staffData.first_name} ${staffData.last_name}`,
                                 time: new Date()
                             });
-                            console.log("After EMIT");
                         }
+
+                        console.log("Compllleeetteddd..........");
+                        //2. Principal specific logic
+                        if (roleName === "principal") {
+
+                            io.to("adminRoom").emit('alert', {
+                                type: 'success',
+                                message: `New Principal Assigned: ${staffData.first_name} ${staffData.last_name}`,
+                                time: new Date()
+                            });
+                        }
+
+                        // 3. Teacher → only school principal
+                        if (roleName === "teacher" && dise_code) {
+
+                            io.to(`school_${dise_code}`).emit('alert', {
+                                type: 'info',
+                                message: `New Teacher Joined: ${staffData.first_name} ${staffData.last_name}`,
+                                time: new Date()
+                            });
+                        }
+
+
                         //  STEP 6: IF PRINCIPAL → update school head_id
                         if (roleName === "principal") {
 
@@ -137,8 +181,6 @@ const postStaffData = (req, res) => {
                             });
 
                         } else {
-
-
 
                             // normal staff
                             sendMailOnProfileCreated(
@@ -202,7 +244,7 @@ const updateStaffData = (req, res) => {
 
         console.log("affectedRows:", result.affectedRows);
 
-        // ❗ MUST CHECK HERE
+        // MUST CHECK HERE
         if (result.affectedRows === 0) {
             return res.status(400).send({
                 message: "No staff updated (invalid ID or same data)"
@@ -326,25 +368,53 @@ let applyPaginationStaff = (req, res) => {
     });
 }
 
-const updateStaffImg = ((req, res) => {
-   try {
-        const imagePath = `/upload/${req.file.filename}`;
+const updateStaffImg = (req, res) => {
+    try {
+        console.log("BODY:", req.body);
+        console.log("FILE:", req.file);
 
-        connection.query(
-            'UPDATE staff SET user_image = ? WHERE staff_id = ?',
-            [imagePath, req.body.staff_id],
-            (err, result) => {
-                if (err) {
-                    return res.status(500).json({ error: err });
-                }
+        const imagePath = req.file ? `/upload/${req.file.filename}` : null;
 
-                res.json({ user_image: imagePath });
+        let query = `
+            UPDATE staff 
+            SET first_name = ?, last_name = ?, email = ?, phone = ?
+        `;
+
+        const phone = Number(req.body.phone)
+
+        let values = [
+            req.body.first_name || "",
+            req.body.last_name || "",
+            req.body.email || "",
+            phone
+        ];
+
+        // ✅ only update image if new file exists
+        if (imagePath) {
+            query += `, user_image = ?`;
+            values.push(imagePath);
+        }
+
+        query += ` WHERE staff_id = ?`;
+        values.push(req.body.staff_id);
+
+        connection.query(query, values, (err, result) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: err });
             }
-        );
+
+            console.log("UPDATED ROWS:", result.affectedRows);
+
+            res.json({
+                message: "Profile updated successfully",
+                user_image: imagePath // may be null if not updated
+            });
+        });
 
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
-})
+};
 
 module.exports = { getStaffData, getRoles, postStaffData, updateStatus, applyPaginationStaff, updateStaffData, updateStaffImg }

@@ -5,61 +5,71 @@ import { HiMail, HiLockClosed, HiEye, HiEyeOff } from 'react-icons/hi';
 import useStore from '../common/store/store';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import socket from './socket';
+
+
 
 const AdminLogin = () => {
-    const navigate = useNavigate()
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
   const login = useStore((state) => state.login);
 
-    const data = {
-        username: username,
-        password: password
-    }
+  const data = {
+    username: username,
+    password: password
+  }
 
-        function postData() {
-        fetch('http://localhost:5008/userlogin', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-            .then(async (res) => {
-                return res.json();
-            })
-            .then((res) => {
-                console.log(res);
-                if (res.status === "Success") {
-                    const userRole = res.role.toLowerCase();
-                    login({
-                        username: res.username,
-                        token: res.token,
-                        role: res.role,
-                        staff_id: res.staff_id,
-                        dise_code: res.dise_code,
-                    });
+  function postData() {
+    fetch('http://localhost:5008/userlogin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+      .then(async (res) => {
+        return res.json();
+      })
+      .then((res) => {
+        console.log(res);
+        if (res.status === "Success") {
+          const userRole = res.role.toLowerCase();
+          login({
+            username: res.username,
+            token: res.token,
+            role: res.role,
+            staff_id: res.staff_id,
+            dise_code: res.dise_code,
+          });
 
-                    if (userRole == "admin") {
-                        toast.success("Login Successful");
-                        navigate('/')
-                    } else {
-                        toast.error("Invalid Credentials");
-                    }
-                }
-            })
-            .catch((err) => {
-                console.error("Fetch error:", err);
-                toast.error("Server error");
-            });
-    }
+          socket.emit("registerUser", {
+            role: userRole,
+            dise_code: res.dise_code
+          });
+
+          console.log("Socket registered:", userRole, res.dise_code);
+
+          if (userRole == "admin") {
+            toast.success("Login Successful");
+            navigate('/')
+          } else {
+            toast.error("Invalid Credentials");
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        toast.error("Server error");
+      });
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-300">
-        
+
         {/* Branding Sidebar */}
         <div className="hidden md:flex md:w-5/12 bg-gradient-to-br from-purple-600 via-violet-600 to-purple-800 p-12 text-white flex-col justify-between">
           <div>

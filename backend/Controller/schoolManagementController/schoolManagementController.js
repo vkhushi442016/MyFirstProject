@@ -1,19 +1,22 @@
 const connection = require('../../Model/dbConnect')
 const socket = require('../SocketIO/SocketIO')
-
+const applyPaginations = require("../Pagination/Pagination")(connection)(
+    "schools_detail",
+  "schoolName"
+)
 
 let getData = (req, res) => {
-    console.log("AUTH:", req.headers.authorization);
     
-    let sqlquery = 'SELECT * FROM schools_detail'
+    // let sqlquery = 'SELECT * FROM schools_detail'
 
-    connection.query(sqlquery, (error, result) => {
-        if (error) {
-            console.log("Error: ", error.message);
-        } else {
-            return res.send(result);
-        }
-    })
+    // connection.query(sqlquery, (error, result) => {
+    //     if (error) {
+    //         console.log("Error: ", error.message);
+    //     } else {
+    //         return res.send(result);
+    //     }
+    // })
+    applyPaginations(req, res, "", [])
 }
 
 let postSchoolData = (req, res) => {

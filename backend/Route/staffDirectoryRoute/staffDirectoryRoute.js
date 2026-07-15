@@ -1,5 +1,6 @@
 const express = require('express')
 const staffRouter = express.Router();
+
 const { getStaffData, getRoles, postStaffData, updateStatus, applyPaginationStaff, updateStaffData, updateStaffImg } = require('../../Controller/staffDirectoryController/staffDirectoryController')
 const { authenticate } = require('../../Controller/authMiddleware/authMiddleware')
 const upload = require("../../Controller/multer")

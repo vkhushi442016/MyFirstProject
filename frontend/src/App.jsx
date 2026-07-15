@@ -31,12 +31,34 @@ import TeacherSyllabusUpdate from './TeacherComponents/TeacherSyllabusUpdate'
 import PrincipalInfrastructure from './Principal/PrincipalInfrastructure'
 import AdminLogin from './UI/AdminLogin'
 import initSocket from './UI/NotificationAlert'
+import StudentsAttendance from './TeacherComponents/StudentsAttendance'
+import useStore from './common/store/store'
+import socket from './UI/socket'
 
 const App = () => {
+  const userRole = useStore((state) => state.role)
+  const dise_code = useStore((state) => state.dise_code)
 
   useEffect(() => {
     initSocket();
   }, []);
+
+  // Register role into socket rooms
+  useEffect(() => {
+
+    if (userRole && socket.connected) {
+
+      console.log("REGISTER ROLE FROM APP:", userRole, dise_code);
+
+      socket.emit("registerRole", {
+        role: userRole.toLowerCase(),
+        dise_code
+      });
+
+    }
+
+  }, [userRole, dise_code]);
+
   return (
     <div>
       <Toaster position="top-center" reverseOrder={false} />
@@ -75,6 +97,7 @@ const App = () => {
               <Route path="/staff/students" element={<Students />} />
               <Route path="/syllabus/update" element={<TeacherSyllabusUpdate />} />
               <Route path='/principal/infra-info' element={<PrincipalInfrastructure />} />
+              <Route path='/students/attendance' element={<StudentsAttendance />} />
             </Route>
           </Route>
         </Routes>

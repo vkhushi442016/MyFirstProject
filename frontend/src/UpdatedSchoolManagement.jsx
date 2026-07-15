@@ -6,6 +6,8 @@ import { IoIosArrowDown } from "react-icons/io";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import AddNewSchoolForm from './AddNewSchoolForm';
 import useStore from './common/store/store';
+import { FiSearch } from 'react-icons/fi';
+import { Pagination } from './UI/Pagination';
 
 
 
@@ -14,6 +16,7 @@ const UpdatedSchoolManagement = () => {
 
     const [data, setData] = useState([])
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(5);
     const [totalPages, setTotalPages] = useState(0);
 
     const [activeSearch, setActiveSearch] = useState(null);
@@ -26,10 +29,10 @@ const UpdatedSchoolManagement = () => {
     const [selectedDistrict, setSelectedDistrict] = useState("");
 
     //school data
-    const fetchSchoolData = async () => {
+    const fetchSchoolData = async (page, limit) => {
         try {
             const res = await fetch(
-                `http://localhost:5008/schoolmanagement?page=${page}&limit=10`,
+                `http://localhost:5008/schoolmanagement?page=${page}&limit=${limit}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -37,7 +40,7 @@ const UpdatedSchoolManagement = () => {
                 }
             ).then((res) => res.json())
                 .then((data) => {
-                    setData(data);
+                    setData(data.data);
                     setTotalPages(data.totalPages)
                     console.log(data)
                 })
@@ -48,8 +51,8 @@ const UpdatedSchoolManagement = () => {
     };
 
     useEffect(() => {
-        fetchSchoolData()
-    }, [page])
+        fetchSchoolData(page, limit)
+    }, [page, limit])
 
     const [sortKey, setSortKey] = useState("schoolName");
     const [sortOrder, setSortOrder] = useState("asc");
@@ -177,19 +180,59 @@ const UpdatedSchoolManagement = () => {
                 <h1 className='text-2xl m-1 font-bold'>Schools Management</h1>
 
                 <hr className='border-gray-300 m-2' />
-                <div className='flex m-1'>
-                    <AddNewSchoolForm />
+                <div className="flex items-center gap-3 p-2 bg-slate-50/50 rounded-2xl border border-slate-100 shadow-sm">
+                    {/* The Add Button (Integrated from our previous design) */}
+                    <div className="flex-shrink-0">
+                        <AddNewSchoolForm />
+                    </div>
 
-                    <input type="text"
-                        placeholder='Search School...'
-                        value={searchValues.schoolName}
-                        onChange={(e) =>
-                            setSearchValues({ ...searchValues, schoolName: e.target.value })
-                        }
-                        className='w-3/5 m-1 p-3 text-md rounded-md bg-white outline-2 focus:ring-2 focus:ring-violet-300 outline-none'
-                    />
+                    {/* Enhanced Search Bar */}
+                    <div className="relative flex-grow">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <FiSearch className="text-slate-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search school by name..."
+                            value={searchValues.schoolName}
+                            onChange={(e) =>
+                                setSearchValues({ ...searchValues, schoolName: e.target.value })
+                            }
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm rounded-xl
+                       placeholder:text-slate-400
+                       focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 
+                       transition-all duration-200 outline-none shadow-sm"
+                        />
+                    </div>
+                    <div className="py-2 px-6 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Show</span>
+                        <select
+                            value={limit}
+                            onChange={(e) => {
+                                setLimit(Number(e.target.value));
+                                setPage(1);
+                            }}
+                            className="bg-white border border-slate-200 text-sm font-bold text-purple-600 py-1 px-2 rounded-md outline-none cursor-pointer focus:ring-2 focus:ring-purple-100"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={15}>15</option>
+                        </select>
+                        <p className="text-sm text-slate-500">entries</p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <Pagination
+                            currentPage={page}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                        />
+                    </div>
+                </div>
                 </div>
 
+                            
 
                 <div className="w-full overflow-x-auto rounded-lg border border-gray-300 bg-white">
 
@@ -655,39 +698,40 @@ const UpdatedSchoolManagement = () => {
                 <div className="flex items-center justify-center gap-2 mt-6">
 
                     {/* Prev Button */}
-                    <button
+                    {/* <button
                         onClick={() => setPage(prev => Math.max(prev - 1, 1))}
                         disabled={page === 1}
                         className="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm hover:bg-purple-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <IoIosArrowBack className="text-lg" />
-                    </button>
+                    </button> */}
 
                     {/* Page Numbers */}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                    {/* {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
                         <button
                             key={num}
                             onClick={() => setPage(num)}
                             className={`w-9 h-9 rounded-lg text-sm font-medium transition flex items-center justify-center
-        ${page === num
+                            ${page === num
                                     ? "bg-purple-600 text-white shadow-md"
                                     : "bg-white hover:bg-purple-100"
                                 }`}
                         >
                             {num}
                         </button>
-                    ))}
+                    ))} */}
 
                     {/* Next Button */}
-                    <button
+                    {/* <button
                         onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
                         disabled={page === totalPages}
                         className="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm hover:bg-purple-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <IoIosArrowForward className="text-lg" />
-                    </button>
+                    </button> */}
 
                 </div>
+                
             </div>
         </div>
     )

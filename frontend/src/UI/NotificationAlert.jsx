@@ -12,7 +12,7 @@ export const initSocket = () => {
   });
 
   socket.on("alert", (data) => {
-    console.log("🔥 ALERT RECEIVED:", data);
+    console.log("ALERT RECEIVED:", data);
 
     useStore.getState().addNotification(data);
   });

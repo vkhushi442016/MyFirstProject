@@ -2,8 +2,9 @@ import './App.css'
 import { FaRegBell } from "react-icons/fa";
 import useStore from './common/store/store';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProfileCard from './UI/ProfileCard';
+import socket from './UI/socket';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const Navbar = () => {
   const notifications = useStore((s) => s.notifications);
   const clearUnread = useStore((s) => s.clearUnread);
   const [open, setOpen] = useState(false);
+  const addNotification = useStore((s) => s.addNotification)
 
   const toggle = () => {
     setOpen(!open);
@@ -39,6 +41,25 @@ const Navbar = () => {
   const handleProfileClick = () => {
     setShowProfile((prev) => !prev); // toggle
   };
+
+  useEffect(() => {
+
+    socket.on("alert", (data) => {
+      console.log("ALERT RECEIVED:", data);
+
+      if (!data) return;
+      addNotification({
+        ...data,
+        read: false
+      });
+    });
+
+    return () => {
+      socket.off("alert");
+    };
+
+  }, []);
+  
   return (
     <>
       <nav className="sticky top-0 z-50 w-full shadow-md shadow-purple-300 border-b border-slate-200 bg-white/80 backdrop-blur-md">
@@ -52,6 +73,8 @@ const Navbar = () => {
             <p className="hidden text-xs font-semibold uppercase tracking-widest text-slate-500 sm:block">
               Centralized School Administration
             </p>
+
+            
           </div>
 
           {/* Right: Actions */}
@@ -59,7 +82,7 @@ const Navbar = () => {
 
             {/* Notification Icon */}
             <div className="relative inline-block">
-              {/* 🔔 Bell Button */}
+              {/* Bell Button */}
               <button
                 onClick={toggle}
                 className="group relative flex items-center justify-center rounded-xl p-2.5 text-slate-500 transition-all duration-200 hover:bg-slate-50 hover:text-purple-600 active:scale-95"
@@ -73,12 +96,13 @@ const Navbar = () => {
                 )}
               </button>
 
-              {/* 📩 Dropdown */}
+              {/* Dropdown */}
               {open && (
                 <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-50">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-100">
                     <h3 className="text-sm font-bold text-slate-800">Notifications</h3>
+                    {console.log(unread)}
                     {unread > 0 && (
                       <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 uppercase tracking-wider">
                         {unread} New
@@ -93,7 +117,10 @@ const Navbar = () => {
                         <p className="text-sm font-medium text-slate-400">All caught up!</p>
                       </div>
                     ) : (
-                      notifications.map((n, i) => (
+                      notifications.map((n, i) => {
+                        if (!n) return null;
+
+                        return (
                         <div
                           key={i}
                           className="group relative flex cursor-pointer gap-3 border-b border-slate-50 p-4 transition-colors hover:bg-slate-50 last:border-0"
@@ -112,8 +139,10 @@ const Navbar = () => {
                             </span>
                           </div>
                         </div>
+                        );
+                      }
                       ))
-                    )}
+                    }
                   </div>
 
                   {/* Footer */}

@@ -105,7 +105,8 @@ const ModalForm = () => {
             <button
                 onClick={() => setOpen(true)}
                 className="flex m-1 bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base"
-            >Add Teacher
+            >
+                Add Teacher
             </button>
 
             {/* Modal */}

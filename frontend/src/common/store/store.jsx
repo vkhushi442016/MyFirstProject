@@ -30,7 +30,7 @@ let useStore = create(
                 sc_category: null,
             }),
 
-            // 🔔 Notification actions
+            // Notification actions
             addNotification: (data) =>
                 set((state) => ({
                     notifications: [data, ...state.notifications],

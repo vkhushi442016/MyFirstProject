@@ -227,7 +227,7 @@ export default function InfrastructureForm() {
     };
 
     return (
-        <div className="p-6 md:p-10 bg-slate-50 min-h-screen font-sans">
+        <div className="p-6 md:p-5 bg-slate-50 min-h-screen font-sans">
 
             {/* Header Section */}
             <div className="max-w-7xl mx-auto mb-10">

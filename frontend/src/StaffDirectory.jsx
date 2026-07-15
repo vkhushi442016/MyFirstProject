@@ -97,7 +97,7 @@ const StaffDirectory = () => {
   const filteredData = finalRes.filter((item) => {
     //Dropdown filter
     const matchesDropdown =
-      selectedName === "" || item.first_name === selectedName;
+      selectedDistrict === "" || item.district === selectedDistrict;
     const value = item[activeSearchColumn];
 
     const matchesColumnSearch =
@@ -180,34 +180,44 @@ const StaffDirectory = () => {
 
       <p className='text-gray-600'>teaching and administrative staff</p>
 
-      <IoSearch className="absolute left-3 top-24 -translate-y-1/2 text-gray-400 text-lg" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full max-w-4xl p-1">
 
-      <div className='flex'>
-        <input type="text"
-          placeholder='Search staff name, ID or school...'
-          value={globalSearch}
-          onChange={(e) => setGlobalSearch(e.target.value)}
-          className='w-2/6 m-1 p-2 pl-8 text-md rounded-md bg-white outline-2 focus:ring-2 focus:ring-violet-300 outline-none'
-        />
+        {/* 1. Search Input Container */}
+        <div className="relative flex-1 min-w-[280px]">
+          {/* Perfectly centered icon relative to the input */}
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <IoSearch className="text-gray-400 text-lg" />
+          </div>
 
-        <div className="relative inline-block">
+          <input
+            type="text"
+            placeholder="Search staff name, ID or school..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white border border-gray-200 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-50"
+          />
+        </div>
+
+        {/* 2. Dropdown Filter Container */}
+        <div className="relative">
           <button
             type="button"
-            onClick={() => {
-              setOpenDistrict(!openDistrict)
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+            onClick={() => setOpenDistrict(!openDistrict)}
+            className="flex items-center justify-between gap-3 w-full sm:w-56 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-violet-50"
           >
-            {selectedDistrict || 'All District'}
-            <IoIosArrowDown />
+            <span className="truncate">
+              {selectedDistrict || 'All Districts'}
+            </span>
+            <IoIosArrowDown className={`text-gray-400 transition-transform duration-200 ${openDistrict ? 'rotate-180' : ''}`} />
           </button>
 
+          {/* Dropdown Menu */}
           {openDistrict && (
-            <ul className="absolute mt-1 w-48 bg-white border rounded shadow-md max-h-60 overflow-y-auto z-50">
+            <ul className="absolute right-0 mt-2 w-full sm:w-56 bg-white border border-gray-100 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 py-1 divide-y divide-gray-50 focus:outline-none">
 
               {/* All option */}
               <li
-                className="px-4 py-2 hover:bg-gray-200 hover:text-black cursor-pointer font-semibold"
+                className="px-4 py-2.5 text-sm font-medium text-violet-600 hover:bg-violet-50 cursor-pointer transition-colors"
                 onClick={() => {
                   setSelectedDistrict("");
                   setOpenDistrict(false);
@@ -216,13 +226,15 @@ const StaffDirectory = () => {
                 All Districts
               </li>
 
+              {/* List Items */}
               {districts.map((item, index) => (
                 <li
                   key={index}
-                  className="px-4 py-2 hover:bg-gray-200 hover:text-black cursor-pointer"
+                  className={`px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors ${selectedDistrict === item.name ? 'bg-violet-50/50 font-medium text-violet-700' : ''
+                    }`}
                   onClick={() => {
-                    setSelectedDistrict(item.name)
-                    setOpenDistrict(false)
+                    setSelectedDistrict(item.name);
+                    setOpenDistrict(false);
                   }}
                 >
                   {item.name}
@@ -231,6 +243,7 @@ const StaffDirectory = () => {
             </ul>
           )}
         </div>
+
       </div>
 
       <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -271,37 +284,6 @@ const StaffDirectory = () => {
                           {col.label}
                         </span>
                       )}
-
-                      {col.filterable && (
-                        <div className="relative">
-                          <RiArrowDropDownLine
-                            className="cursor-pointer text-2xl text-slate-400 hover:text-indigo-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowDropdown(prev => !prev);
-                            }}
-                          />
-                          {showDropdown && (
-                            <div className="absolute top-8 left-0 w-48 bg-white shadow-xl border border-slate-100 rounded-xl z-50 overflow-hidden py-1 animate-in fade-in zoom-in duration-100">
-                              <div
-                                className="px-4 py-2 text-xs hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors font-medium text-slate-600"
-                                onClick={(e) => { e.stopPropagation(); setSelectedName(""); setShowDropdown(false); }}
-                              >
-                                All Staff Members
-                              </div>
-                              {uniqueNames.map((name, index) => (
-                                <div
-                                  key={index}
-                                  className="px-4 py-2 text-xs hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-colors text-slate-600"
-                                  onClick={() => { setSelectedName(name); setShowDropdown(false); }}
-                                >
-                                  {name}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </th>
                 ))}
@@ -310,89 +292,89 @@ const StaffDirectory = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-  {sortedData.map((item) => (
-    <tr 
-      key={`${item.staff_id}-${item.role_id}`} 
-      className="group hover:bg-indigo-50/30 transition-colors duration-200"
-    >
-      {/* Basic Info Cells */}
-      <td className="px-6 py-4 text-sm font-medium text-slate-600">{item.dise_code}</td>
-      <td className="px-6 py-4 text-sm text-slate-500 font-mono">{item.staff_id}</td>
-      
-      {/* Name with subtle emphasis */}
-      <td className="px-6 py-4">
-        <div className="text-sm font-bold text-slate-900 capitalize leading-none">
-          {item.first_name} {item.last_name}
-        </div>
-        <div className="text-[10px] text-slate-400 mt-1 uppercase font-semibold tracking-tighter">
-          Staff Member
-        </div>
-      </td>
+              {sortedData.map((item) => (
+                <tr
+                  key={`${item.staff_id}-${item.role_id}`}
+                  className="group hover:bg-indigo-50/30 transition-colors duration-200"
+                >
+                  {/* Basic Info Cells */}
+                  <td className="px-6 py-4 text-sm font-medium text-slate-600">{item.dise_code}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500 font-mono">{item.staff_id}</td>
 
-      <td className="px-6 py-4 text-sm text-slate-600 capitalize">{item.rname}</td>
-      <td className="px-6 py-4 text-sm text-slate-500">{item.gender}</td>
-      <td className="px-6 py-4 text-sm text-slate-600 italic font-medium">{item.qualification}</td>
-      <td className="px-6 py-4 text-sm text-slate-600">{item.experience} Yrs</td>
+                  {/* Name with subtle emphasis */}
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-bold text-slate-900 capitalize leading-none">
+                      {item.first_name} {item.last_name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 uppercase font-semibold tracking-tighter">
+                      Staff Member
+                    </div>
+                  </td>
 
-      {/* Modern Status Selector */}
-      <td className="px-6 py-4">
-        <div className="relative inline-block w-full min-w-[120px]">
-          <select
-            value={item.status}
-            onChange={(e) => handleStatusChange(item.staff_id, e.target.value)}
-            className={`appearance-none w-full px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border-2 transition-all cursor-pointer outline-none text-center
+                  <td className="px-6 py-4 text-sm text-slate-600 capitalize">{item.rname}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{item.gender}</td>
+                  <td className="px-6 py-4 text-sm text-slate-600 italic font-medium">{item.qualification}</td>
+                  <td className="px-6 py-4 text-sm text-slate-600">{item.experience} Yrs</td>
+
+                  {/* Modern Status Selector */}
+                  <td className="px-6 py-4">
+                    <div className="relative inline-block w-full min-w-[120px]">
+                      <select
+                        value={item.status}
+                        onChange={(e) => handleStatusChange(item.staff_id, e.target.value)}
+                        className={`appearance-none w-full px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border-2 transition-all cursor-pointer outline-none text-center
               ${item.status === "Active"
-                ? "bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                : item.status === "Inactive"
-                  ? "bg-rose-50 border-rose-100 text-rose-700 hover:bg-rose-100"
-                  : "bg-amber-50 border-amber-100 text-amber-700 hover:bg-amber-100"
-              }`}
-          >
-            <option value="Active">● Active</option>
-            <option value="Inactive">● Inactive</option>
-            <option value="On Leave">● On Leave</option>
-          </select>
-        </div>
-      </td>
+                            ? "bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                            : item.status === "Inactive"
+                              ? "bg-rose-50 border-rose-100 text-rose-700 hover:bg-rose-100"
+                              : "bg-amber-50 border-amber-100 text-amber-700 hover:bg-amber-100"
+                          }`}
+                      >
+                        <option value="Active">● Active</option>
+                        <option value="Inactive">● Inactive</option>
+                        <option value="On Leave">● On Leave</option>
+                      </select>
+                    </div>
+                  </td>
 
-      {/* Action Buttons Group */}
-      <td className="px-6 py-4">
-        <div className="flex items-center justify-end gap-2">
-          {/* View Icon */}
-          <button
-            onClick={() => handleView(item)}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-            title="View Details"
-          >
-            <FaEye size={16} />
-          </button>
+                  {/* Action Buttons Group */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* View Icon */}
+                      <button
+                        onClick={() => handleView(item)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        title="View Details"
+                      >
+                        <FaEye size={16} />
+                      </button>
 
-          {/* PDF Export */}
-          <div className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Export PDF">
-            <GeneratePDF
-              filename={`${item.first_name}_${item.last_name}.pdf`}
-              title={`${item.first_name} ${item.last_name} Info`}
-            >
-              <StaffPdfContent staff={item} />
-            </GeneratePDF>
-          </div>
+                      {/* PDF Export */}
+                      <div className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Export PDF">
+                        <GeneratePDF
+                          filename={`${item.first_name}_${item.last_name}.pdf`}
+                          title={`${item.first_name} ${item.last_name} Info`}
+                        >
+                          <StaffPdfContent staff={item} />
+                        </GeneratePDF>
+                      </div>
 
-          {/* Edit Icon */}
-          <button
-            onClick={() => {
-              setUpdateOpen(true);
-              setUpdateStaff(item);
-            }}
-            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-            title="Edit Staff"
-          >
-            <BiSolidEditAlt size={18} />
-          </button>
-        </div>
-      </td>
-    </tr>
-  ))}
-</tbody>
+                      {/* Edit Icon */}
+                      <button
+                        onClick={() => {
+                          setUpdateOpen(true);
+                          setUpdateStaff(item);
+                        }}
+                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                        title="Edit Staff"
+                      >
+                        <BiSolidEditAlt size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
 
           </table>
         </div>
@@ -545,8 +527,8 @@ const StaffDirectory = () => {
         )}
 
       </div>
-      </div>
-      )
+    </div>
+  )
 }
 
-      export default StaffDirectory
+export default StaffDirectory

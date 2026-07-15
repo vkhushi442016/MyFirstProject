@@ -5,7 +5,7 @@ import { FaUserCircle } from "react-icons/fa";
 import ChangePasswordModal from '../ChangePasswordModal';
 import toast from 'react-hot-toast';
 import EditProfile from './EditProfile';
-
+import { Link } from 'react-router-dom'
 
 
 const ProfileCard = () => {
@@ -18,7 +18,8 @@ const ProfileCard = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const fetchProfileData = async (id) => {
-    const result = await axios(`http://localhost:5008/user/profile/${id}`)
+    const result = await axios.get(`http://localhost:5008/user/profile/${id}`)
+    console.log(result.data)
     setData(result.data);
   }
   useEffect(() => {
@@ -60,7 +61,7 @@ const ProfileCard = () => {
             <div className="relative group">
               <div className="h-28 w-28 rounded-full ring-4 ring-indigo-50 overflow-hidden">
                 <img
-                  src='https://readymadeui.com/team-1.webp'
+                  src={`http://localhost:5008${data.user_image}`}
                   className="w-full h-full object-cover"
                   alt="Profile"
                 />
@@ -92,13 +93,9 @@ const ProfileCard = () => {
                 </button>
 
                 <button
-                  onClick={() => {
-                    setIsOpen(true);
-                    setOpen(false); // Close Change Password
-                  }}
                   className="text-sm font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
                 >
-                  Edit Profile
+                  <Link to='/settings'>Edit Profile</Link>
                 </button>
               </div>
             </div>
@@ -106,11 +103,6 @@ const ProfileCard = () => {
         </div>
 
         {/* Modals */}
-        <EditProfile
-          isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
-        />
-
         <ChangePasswordModal
           isOpen={open}
           onClose={() => setOpen(false)}

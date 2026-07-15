@@ -11,6 +11,9 @@ import BarChart from './BarChart';
 import ProgressBar from './ProgressBar';
 import PerformanceBar from './PerformanceBar';
 import useStore from './common/store/store';
+import { FaCalendarAlt, FaClock } from "react-icons/fa";
+
+
 
 const Dashboard = () => {
   const token = useStore((state) => state.token);
@@ -23,7 +26,7 @@ const Dashboard = () => {
   const [past30Schools, setPast30Schools] = useState([])
 
   const [performancePercentage, setPerformancePercentage] = useState({});
-
+  const [events, setEvents] = useState([])
 
   function getTotalSchools() {
     fetch('http://localhost:5008/totalschools')
@@ -113,7 +116,7 @@ const Dashboard = () => {
 
 
         //for counting performance value in number format
-        const countPerformance = res.data.reduce((acc, item) => {
+        const countPerformance = res.reduce((acc, item) => {
           const key = item.performance;
           acc[key] = (acc[key] || 0) + 1;
           return acc;
@@ -124,9 +127,13 @@ const Dashboard = () => {
         const totalCountPerformance = Object.values(countPerformance).reduce((sum, val) => sum + val, 0);
 
         //performance percentage
-        const performancePercentage = {}
+        const performancePercentage = {};
+
         for (let key in countPerformance) {
-          performancePercentage[key] = ((countPerformance[key] / totalCountPerformance) * 100);
+          const value =
+            (countPerformance[key] / totalCountPerformance) * 100;
+
+          performancePercentage[key] = Math.round(value);
         }
         setPerformancePercentage(performancePercentage)
         //console.log(performancePercentage);
@@ -137,6 +144,46 @@ const Dashboard = () => {
     getSchoolManagementData()
   }, [])
 
+  const colorMap = {
+    1: "from-blue-500 to-cyan-400",
+    2: "from-purple-500 to-pink-500",
+    3: "from-orange-500 to-red-400",
+    4: "from-green-500 to-emerald-400",
+  };
+
+  //get events
+  useEffect(() => {
+    const fetchCalendarEvents = async () => {
+      const result = await axios.get(`http://localhost:5008/schoolevent`)
+      setEvents(result.data)
+      console.log(result.data);
+    }
+    fetchCalendarEvents()
+  }, [])
+
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const currentMonthEvents = events.filter(event => {
+    const eventDate = new Date(event.event_date);
+
+    return (
+      eventDate.getMonth() === currentMonth &&
+      eventDate.getFullYear() === currentYear &&
+      eventDate >= today
+    )
+  })
+
+
+  const districts = [
+    { name: 'Bhopal', value: 0.92, theme: { track: 'bg-green-100', bar: 'bg-green-500' } },
+    { name: 'Indore', value: 0.88, theme: { track: 'bg-green-100', bar: 'bg-green-500' } },
+    { name: 'Jabalpur', value: 0.76, theme: { track: 'bg-blue-100', bar: 'bg-blue-500' } },
+    { name: 'Gwalior', value: 0.71, theme: { track: 'bg-blue-100', bar: 'bg-blue-500' } },
+    { name: 'Sagar', value: 0.58, theme: { track: 'bg-orange-100', bar: 'bg-orange-500' } },
+    { name: 'Rewa', value: 0.45, theme: { track: 'bg-red-100', bar: 'bg-red-500' } },
+  ];
 
   return (
     <div className="flex">
@@ -264,8 +311,8 @@ const Dashboard = () => {
         <div className='flex mt-4 left-0 grid sm:grid-cols-1 md:grid-cols-2'>
           <div className="w-full my-2 ">
             {chartData ? (
-              <BarChart 
-                data={chartData} 
+              <BarChart
+                data={chartData}
                 title="Average Syllabus Completion Per District"
               />
             ) : (
@@ -291,54 +338,175 @@ const Dashboard = () => {
 
         </div>
 
-        <div className="h-70 rounded-md bg-white m-4 p-6">
-          <h1 className="text-2xl font-medium">District Performance</h1>
-          <h4>Bhopal</h4>
-          <div className="w-full h-2 bg-green-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.92 * 100}%` }}
-            />
-          </div>
-          <h4>Indore</h4>
-          <div className="w-full h-2 bg-green-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.88 * 100}%` }}
-            />
-          </div>
-          <h4>Jabalpur</h4>
-          <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.76 * 100}%` }}
-            />
-          </div>
-          <h4>Gwalior</h4>
-          <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.71 * 100}%` }}
-            />
-          </div>
-          <h4>Sagar</h4>
-          <div className="w-full h-2 bg-orange-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-orange-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.58 * 100}%` }}
-            />
-          </div>
-          <h4>Rewa</h4>
-          <div className="w-full h-2 bg-red-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-red-500 transition-all duration-500 ease-out"
-              style={{ width: `${0.45 * 100}%` }}
-            />
+        <div className="flex items-center justify-center">
+          {/* Card Container */}
+          <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+
+            {/* Header Section */}
+            <div className="mb-6">
+              <h1 className="text-xl font-semibold text-gray-900 tracking-tight">District Performance</h1>
+              <p className="text-xs text-gray-500 mt-1">Overview of regional efficiency metrics</p>
+            </div>
+
+            {/* Progress List */}
+            <div className="space-y-4">
+              {districts.map((district) => (
+                <div key={district.name} className="space-y-1.5">
+
+                  {/* Labels & Meta */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700">{district.name}</span>
+                    <span className="font-semibold text-gray-900">
+                      {Math.round(district.value * 100)}%
+                    </span>
+                  </div>
+
+                  {/* Progress Track */}
+                  <div className={`w-full h-2 ${district.theme.track} rounded-full overflow-hidden`}>
+                    <div
+                      className={`h-full ${district.theme.bar} rounded-full transition-all duration-500 ease-out`}
+                      style={{ width: `${district.value * 100}%` }}
+                    />
+                  </div>
+
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
 
+        <div className='bg-white m-2 p-2 rounded-xl'>
+          {/* 1. Admin Header Section */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+            {/* Left Section: Admin Context */}
+            <div>
+              <span className="text-xs font-bold tracking-wider text-blue-600 uppercase">
+                System Management
+              </span>
+              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                Event Management
+              </h1>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Review, authorize, and moderate system-wide schedule logs.
+              </p>
+            </div>
+
+            {/* Right Section: System Metrics */}
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:px-6">
+              <div className="rounded-lg bg-blue-50 p-2.5 text-blue-600">
+                {/* Admin Server/Calendar Icon */}
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Active Records
+                </p>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                  {currentMonthEvents.length}
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Admin Vertical List Layout (Line-by-Line) */}
+          <div className="flex flex-col gap-3">
+            {currentMonthEvents.map((event) => {
+              const date = new Date(event.event_date);
+
+              return (
+                <div
+                  key={event.id}
+                  className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md md:flex-row md:items-center md:justify-between"
+                >
+                  {/* Subtle Dynamic Colored Left Sidebar Marker */}
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${colorMap[event.color_idx]}`}
+                  />
+
+                  {/* Left Block: ID, Title, Badges */}
+                  <div className="flex flex-1 flex-col gap-2 pl-3 sm:flex-row sm:items-center sm:gap-6">
+                    <span className="w-20 font-mono text-xs font-bold text-slate-400 shrink-0">
+                      ID: #{event.id}
+                    </span>
+
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-base font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {event.title}
+                      </h3>
+                      <div className="sm:hidden">
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white ${colorMap[event.color_idx]}`}>
+                          Type {event.color_idx}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Center Block: Schedule Metadata (Date & Time) */}
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pl-3 md:pl-0">
+                    <div className="hidden sm:block">
+                      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-white ${colorMap[event.color_idx]}`}>
+                        Type {event.color_idx}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                      <FaCalendarAlt size={14} className="text-slate-400" />
+                      <span>
+                        {date.toLocaleDateString("en-IN", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                      <FaClock size={14} className="text-slate-400" />
+                      <span>{event.event_time}</span>
+                    </div>
+                  </div>
+
+                  {/* Right Block: Admin Operational Controls */}
+                  <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3 md:border-t-0 md:pt-0 pl-3 md:pl-0 shrink-0">
+                    <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900">
+                      Edit
+                    </button>
+                    <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-slate-800">
+                      Manage
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 3. Admin Empty State */}
+          {currentMonthEvents.length === 0 && (
+            <div className="mt-12 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm">
+                <FaCalendarAlt size={20} />
+              </div>
+
+              <h2 className="text-lg font-bold text-slate-900">
+                No Database Entries Found
+              </h2>
+
+              <p className="mt-1 max-w-sm text-xs font-medium text-slate-500">
+                There are no live scheduling records registered for this specific parameters.
+              </p>
+            </div>
+          )}
+        </div>
+
+
+
       </div>
-    </div >
+
+    </div>
   )
 }
 

@@ -57,6 +57,7 @@ const LoginWithGoogle = () => {
                 } else if (roles == "teacher") {
                     toast.success("You are a teacher")
                     console.log("You are a teacher.")
+                    navigate('/staff/dashboard')
                 } else {
                     console.log("You are not registered");
                 }

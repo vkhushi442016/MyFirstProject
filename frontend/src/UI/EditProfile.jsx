@@ -4,45 +4,70 @@ import { HiOutlineInformationCircle } from 'react-icons/hi';
 import useStore from '../common/store/store';
 import axios from 'axios';
 import { useRef, useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 
 const EditProfile = ({ isOpen, onClose }) => {
-    const staff_id = useStore((state) => state.staff_id)
-    const [user, setUser] = useState({
-        user_image: "",
-    });
 
     const fileRef = useRef();
+    const staff_id = useStore((state) => state.staff_id);
+    const [selectedFile, setSelectedFile] = useState(null);
+
+    const [user, setUser] = useState({
+        user_image: "",
+        first_name: "",
+        last_name: "",
+        phone: "",
+        email: "",
+    });
 
 
-    const handleFileChange = async (e) => {
+    //if (!isOpen) return null;
+
+    const handleFileChange = (e) => {
         const file = e.target.files[0];
+        if (file) setSelectedFile(file);
+    };
 
-        if (!file) return;
+    useEffect(() => {
+        console.log("USER UPDATED:", user);
+        console.log("USER IMAGE:", user?.user_image);
+    }, [user]);
 
+    const handleUpdateProfile = async () => {
         const formData = new FormData();
-        formData.append("image", file);
-        formData.append("staff_id", staff_id);
 
-        const result = await axios.patch("http://localhost:5008/update-profile",
-            formData,
-            {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                }
-            }
-        )
-        console.log(result.data)
-       
+        formData.append("staff_id", staff_id);
+        formData.append("first_name", user.first_name || "");
+        formData.append("last_name", user.last_name || "");
+        formData.append("email", user.email || "");
+        formData.append("phone", user.phone || "");
+
+        if (selectedFile) {
+            formData.append("image", selectedFile);
+        }
+
+        const result = await axios.patch(
+            "http://localhost:5008/update-profile",
+            formData
+        );
+
+        console.log(result.data);
+        toast.success("Profile updated successfully")
         setUser((prev) => ({
             ...prev,
-            user_image: result.data.user_image
+            user_image: result.data.user_image || prev.user_image
         }));
-    }
-useEffect(() => {
-  console.log("USER UPDATED:", user);
-  console.log("USER IMAGE:", user?.user_image);
-}, [user]);
+    };
+
+    useEffect(() => {
+        axios.get(`http://localhost:5008/user/profile/${staff_id}`)
+            .then((res) => {
+                setUser(res.data)
+                console.log("Data ", res.data);
+            })
+            .catch(err => console.error(err));
+    }, [staff_id]);
 
     return (
         <div className="fixed inset-0 z-999 flex items-center justify-center p-4">
@@ -61,6 +86,7 @@ useEffect(() => {
                         <h3 className="text-xl font-bold text-slate-800">Account Settings</h3>
                     </div>
                     <button
+                        type='button'
                         onClick={onClose}
                         className="rounded-full p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600"
                     >
@@ -104,7 +130,11 @@ useEffect(() => {
                         <div className="space-y-1">
                             <h4 className="text-sm font-bold text-slate-700">Profile Picture</h4>
                             <p className="text-xs text-slate-500">PNG, JPG up to 5MB</p>
-                            <button type="button" className="text-xs font-bold text-purple-600 underline underline-offset-4 hover:text-purple-700">
+                            <button
+                                type="button"
+                                onClick={() => fileRef.current?.click()}
+                                className="text-xs font-bold text-purple-600 underline underline-offset-4 hover:text-purple-700"
+                            >
                                 Upload new image
                             </button>
                         </div>
@@ -114,25 +144,37 @@ useEffect(() => {
                     <div className="space-y-5">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Full Name</label>
+                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">First Name</label>
                                 <div className="relative">
                                     <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                                     <input
                                         type="text"
+                                        value={user.first_name}
+                                        onChange={(e) =>
+                                            setUser((prev) => ({
+                                                ...prev,
+                                                first_name: e.target.value
+                                            }))}
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10"
-                                        placeholder="John Doe"
+                                        placeholder="Enter first name"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Role</label>
+                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Last Name</label>
                                 <div className="relative">
                                     <FaBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                                     <input
                                         type="text"
+                                        value={user.last_name}
+                                        onChange={(e) =>
+                                            setUser((prev) => ({
+                                                ...prev,
+                                                last_name: e.target.value
+                                            }))}
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10"
-                                        placeholder="UX Designer"
+                                        placeholder="Enter last name"
                                     />
                                 </div>
                             </div>
@@ -144,6 +186,12 @@ useEffect(() => {
                                 <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                                 <input
                                     type="email"
+                                    value={user.email}
+                                    onChange={(e) =>
+                                        setUser((prev) => ({
+                                            ...prev,
+                                            email: e.target.value
+                                        }))}
                                     className="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10"
                                     placeholder="john@company.com"
                                 />
@@ -151,13 +199,23 @@ useEffect(() => {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Bio</label>
-                            <textarea
-                                rows="3"
-                                className="w-full rounded-xl border border-slate-200 bg-slate-50/30 p-3 text-sm outline-none transition-all focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10"
-                                placeholder="Brief description for your profile..."
-                            ></textarea>
+                            <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Contact</label>
+                            <div className="relative">
+                                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
+                                <input
+                                    type="text"
+                                    value={user.phone}
+                                    onChange={(e) =>
+                                        setUser((prev) => ({
+                                            ...prev,
+                                            phone: e.target.value
+                                        }))}
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/30 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10"
+                                    placeholder=""
+                                />
+                            </div>
                         </div>
+
                     </div>
                 </form>
 
@@ -169,12 +227,16 @@ useEffect(() => {
                     </div>
                     <div className="flex gap-3">
                         <button
+                            type='button'
                             onClick={onClose}
                             className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200"
                         >
                             Cancel
                         </button>
-                        <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95">
+                        <button
+                            type='button'
+                            onClick={handleUpdateProfile}
+                            className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95">
                             Update Profile
                         </button>
                     </div>

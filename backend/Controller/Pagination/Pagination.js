@@ -1,13 +1,11 @@
 // pagination.js
-
 const applyPaginations = (connection) => {
     return (tableName, orderByColumn = "id") => {
         return (req, res, whereClause = "", params = []) => {
             let page = parseInt(req.query.page) || 1;
             let limit = parseInt(req.query.limit);
-            if (!limit || limit <= 0) limit = 10;
+            if (!limit || limit <= 0) limit = 5;
             let offset = (page - 1) * limit;
-
 
             // Total count
             const countQuery = `SELECT COUNT(*) as count FROM ${tableName} ${whereClause}`;
@@ -18,8 +16,8 @@ const applyPaginations = (connection) => {
                 const totalPages = Math.ceil(totalItems / limit) || 1;
 
                 // Fetch paginated data
-                const dataQuery = 
-                                    `SELECT * FROM ${tableName} 
+                const dataQuery =
+                    `SELECT * FROM ${tableName} 
                                     ${whereClause} 
                                     ORDER BY ${orderByColumn} 
                                     LIMIT ? OFFSET ?

@@ -136,7 +136,7 @@ const AddNewSchoolForm = () => {
 
     const [searchDistrict, setSearchDistrict] = useState('')
     const [attemptedDistrictSelect, setAttemptedDistrictSelect] = useState(false)
-    
+
     //for modal dropdown district filter
     const filteredDistricts = district.filter((item) =>
         item.name.toLowerCase().includes(searchDistrict.toLowerCase())
@@ -154,11 +154,11 @@ const AddNewSchoolForm = () => {
         <>
             <button
                 onClick={() => setOpen(true)}
-                className="flex m-1 bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base">
-                <IoMdAdd className='m-1 font-bold' />
-                Add School
+                className="flex items-center justify-center gap-2 bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-purple-200 active:scale-95 border border-purple-800/50"
+            >
+                <IoMdAdd className="text-lg" />
+                <span>Add School</span>
             </button>
-
 
             {/* Modal */}
             {open && (
@@ -458,7 +458,7 @@ const AddNewSchoolForm = () => {
                                                     value={formik.values.staffCount}
                                                     onChange={formik.handleChange}
                                                     onBlur={formik.handleBlur}
-                                                    className={`w-full pl-10 pr-3 py-2 rounded-md h-11 px-4 border border-blue-200 transition-colors duration-200 ${formik.values.dise_code 
+                                                    className={`w-full pl-10 pr-3 py-2 rounded-md h-11 px-4 border border-blue-200 transition-colors duration-200 ${formik.values.dise_code
                                                         ? "bg-white" : "bg-slate-100 hover:bg-white focus:bg-white"} focus:ring-2 focus:ring-blue-300`}
                                                 />
                                             </div>

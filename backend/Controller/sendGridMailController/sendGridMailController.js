@@ -5,7 +5,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 const sendMailOnSignUp = async (toEmail, username) => {
     console.log("Sending email to:", toEmail);
     const msg = {
-        from: "khushiverma442016@gmail.com",
+        from: process.env.FROM_MAIL_ID,
         to: toEmail,
         subject: "Welcome to MP Education Portal – Account Successfully Created",
         text: `Dear ${username},
@@ -39,7 +39,7 @@ const sendMailOnSignUp = async (toEmail, username) => {
 
 const sendMailOnProfileCreated = async (toEmail, first_name, last_name, link, role) => {
     const msg = {
-        from: "khushiverma442016@gmail.com",
+        from: process.env.FROM_MAIL_ID,
         to: toEmail,
         subject: "Profile Created on MP Education Portal",
         text: `Dear ${first_name} ${last_name},
